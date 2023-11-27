@@ -9,3 +9,6 @@ data/processed_data.csv
 data/scaled_data.csv
 
 models/
+
+.idea
+.vscode
