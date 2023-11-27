@@ -48,6 +48,11 @@ Each script is designed to be run sequentially:
 - NumPy
 - Matplotlib
 - scikit-learn
+- joblib
+
+```bash
+pip install -r requirements.txt
+```
 
 # Note
 This project is intended for educational purposes and should not be used as financial advice.
