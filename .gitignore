@@ -1,0 +1,11 @@
+# .gitignore
+__pycache__/
+*.pyc
+*.ipynb_checkpoints
+venv/
+.env
+
+data/processed_data.csv
+data/scaled_data.csv
+
+models/
