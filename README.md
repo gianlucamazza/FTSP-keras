@@ -30,21 +30,24 @@ Each script is designed to be run sequentially:
 
 1. **Data Preparation**:
    ```bash
-   python src/data_preparation.py
+   python data_preparation.py
     ```
 2. **Feature Engineering**:
    ```bash
-    python src/feature_engineering.py
+   python feature_engineering.py
      ```
-   
-3. **Model Training**:
-    ```bash
-     python src/train.py
-      ```
-4. **Prediction**:
-    ```bash
-     python src/predict.py
-      ```
+3. **Build Model**:
+   ```bash
+   python model.py
+     ```
+4. **Train Model**:
+   ```bash
+   python train.py
+     ```
+5. **Predictions**:
+6. ```bash
+   python predict.py
+     ```
 
 ## Requirements
 The project requires the following libraries:

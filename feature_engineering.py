@@ -1,5 +1,7 @@
+# feature_engineering.py
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import joblib
 
 
 def add_additional_features(df):
@@ -12,6 +14,9 @@ def add_additional_features(df):
     Returns:
     pandas.DataFrame: Dataframe with additional columns for technical indicators.
     """
+    if df[['RSI', 'MACD']].isna().any().any():
+        df[['RSI', 'MACD']].ffill(inplace=True)
+
     df['RSI'] = calculate_rsi(df['Close'])
     df['MACD'] = calculate_macd(df['Close'])
     return df
@@ -28,12 +33,12 @@ def calculate_rsi(prices, n=14):
     Returns:
     pandas.Series: Series of RSI values.
     """
-    deltas = prices.diff().fillna(0)
-    gain = deltas.clip(lower=0)
-    loss = -deltas.clip(upper=0)
-    avg_gain = gain.rolling(window=n).mean()
-    avg_loss = loss.rolling(window=n).mean()
-    rs = avg_gain / avg_loss
+    deltas = prices.diff()
+    loss = deltas.where(deltas < 0, 0)
+    gain = deltas.where(deltas > 0, 0)
+    avg_gain = gain.rolling(window=n, min_periods=1).mean()
+    avg_loss = -loss.rolling(window=n, min_periods=1).mean()
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
     return 100 - (100 / (1 + rs))
 
 
@@ -67,6 +72,7 @@ def normalize_features(df):
     scaler = MinMaxScaler()
     numeric_columns = df.select_dtypes(include=['number']).columns
     df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
+    joblib.dump(scaler, 'models/scaler.pkl')
     return df
 
 
@@ -76,7 +82,10 @@ def main():
     # Handle 'Date' column
     dates = pd.to_datetime(df.pop('Date')) if 'Date' in df.columns else None
 
+    # Add additional features
     df = add_additional_features(df)
+
+    # Normalize features
     df_scaled = normalize_features(df)
 
     # Reattach 'Date' column and set as index
