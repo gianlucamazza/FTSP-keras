@@ -1,20 +1,25 @@
 # Bitcoin Price Prediction Using LSTM
 
 ## Project Overview
-This project focuses on predicting Bitcoin prices by analyzing historical price data using a Long Short-Term Memory (LSTM) model, a type of recurrent neural network. The project involves data preparation, feature engineering, model training, and prediction.
+This project leverages a Long Short-Term Memory (LSTM) model, a variant of recurrent neural networks, to predict Bitcoin prices. It encompasses data preparation, feature engineering, model building, training, and predictions based on historical price data.
+
+## Motivation
+The goal is to explore machine learning techniques applied to financial data, aiming to develop a model capable of accurately predicting Bitcoin prices. This model could potentially aid in making informed investment decisions.
 
 ## Structure
-The project is organized into several scripts, each handling a specific aspect of the machine learning workflow:
+The repository is organized into scripts for each stage of the machine learning pipeline:
 
-- `data_preparation.py`: Loads and preprocesses the raw Bitcoin price data.
-- `feature_engineering.py`: Adds technical indicators as features and normalizes the data.
-- `model.py`: Defines the LSTM model architecture.
-- `train.py`: Trains the model on historical data and evaluates its performance.
-- `predict.py`: Uses the trained model to make future price predictions.
+- `data_preparation.py`: Processes raw Bitcoin price data.
+- `feature_engineering.py`: Enhances the data with technical indicators and normalizes it.
+- `model.py`: Outlines the LSTM neural network architecture.
+- `train.py`: Focuses on training and evaluating the model with historical data.
+- `predict.py`: Employs the trained model for future price predictions.
 
 ## Data
 The data folder contains the historical Bitcoin price data:
-- `BTC-USD.csv`: Raw Bitcoin price data.
+- `BTC-USD.csv`: Original Bitcoin price dataset.
+- `processed_data.csv`: Data augmented with technical indicators.
+- `scaled_data.csv`: Data normalized for model training.
 
 Processed data files:
 - `processed_data.csv`: Data with added technical indicators.
@@ -42,6 +47,7 @@ Each script is designed to be run sequentially:
       ```
 
 ## Requirements
+The project requires the following libraries:
 - Keras
 - TensorFlow
 - Pandas
@@ -50,12 +56,15 @@ Each script is designed to be run sequentially:
 - scikit-learn
 - joblib
 
+Install dependencies using:
 ```bash
 pip install -r requirements.txt
 ```
 
-# Note
-This project is intended for educational purposes and should not be used as financial advice.
+
+# Contributing
+Contributions to improve the model or suggestions for new features are welcome. Please follow the standard pull request process to contribute.
 
 # License
+This project is open-sourced under the MIT license.
 [MIT](https://choosealicense.com/licenses/mit/)

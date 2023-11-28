@@ -44,6 +44,19 @@ def create_dataset(df, feature_column, target_column, time_steps=1):
     return TimeseriesGenerator(data, target, length=time_steps, batch_size=1)
 
 
+def get_numeric_columns(df):
+    """
+    Returns a list of column names containing numeric data.
+
+    Parameters:
+    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
+
+    Returns:
+    list: List of column names containing numeric data.
+    """
+    return df.select_dtypes(include=['number']).columns
+
+
 def load_scaler(path):
     """
     Loads a pre-fitted MinMaxScaler from a file.
@@ -62,6 +75,8 @@ if __name__ == "__main__":
 
     feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
     target_column = 'Close'
+
+    numeric_columns = get_numeric_columns(test_data)
 
     model = load_model('models/bitcoin_prediction_model.keras')
 
@@ -91,11 +106,18 @@ if __name__ == "__main__":
         future_dates = [last_date + pd.Timedelta(days=i) for i in range(1, steps + 1)]
         for _ in range(steps):
             prediction_scaled = model.predict(future_input)[0][0]
-            prediction = scaler.inverse_transform(prediction_scaled.reshape(-1, 1)).flatten()[0]
+
+            scaled_prediction = np.zeros(
+                (1, len(numeric_columns)))
+            scaled_prediction[
+                0, 0] = prediction_scaled
+
+            prediction = scaler.inverse_transform(scaled_prediction)[0, 0]
             predictions.append(prediction)
 
             new_input = np.roll(future_input, -1, axis=1)
-            new_input[0, -1, 0] = prediction
+            new_input[0, -1, :] = np.zeros(future_input.shape[2])
+            new_input[0, -1, 0] = prediction_scaled
             future_input = new_input
 
         future_predictions[steps] = (future_dates, predictions)
