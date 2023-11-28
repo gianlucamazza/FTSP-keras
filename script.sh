@@ -1,7 +1,8 @@
 #!/bin/bash
 
-text="You are an expert in machine learning.\n"
-text+="Analyze carefully the following tensorflow project for predicting the bitcoin price in the future and provide all code fixes and improvements using a snippet. Comment only with code.\n"
+text="Verify and optimize the following project. Show me only the most important mistakes or optimizations of the code.\n"
+
+
 
 separator="\n\`\`\`\n"
 

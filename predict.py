@@ -4,6 +4,7 @@ from keras.models import load_model
 import numpy as np
 import matplotlib.pyplot as plt
 import joblib
+import warnings
 
 
 def main():
@@ -11,37 +12,57 @@ def main():
     if df.empty:
         raise ValueError("Dataframe is empty.")
     df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+
     model = load_model('models/bitcoin_prediction_model_trained.keras')
-
-    feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
-    time_steps = 50
     scaler = joblib.load('models/scaler.pkl')
-    last_input = df[feature_columns].values[-time_steps:].reshape(1, time_steps, -1)
-    scaled_prediction = np.zeros((1, len(feature_columns)))
+    feature_columns = [
+        'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
+        'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD'
+    ]
 
-    future_steps = [1, 7, 30]
+    time_steps = 50
+    future_steps = 30
     future_predictions = {}
+    close_index = feature_columns.index('Close')  # Index of 'Close' feature
 
-    last_date = df['Date'].iloc[-1]
+    # Prepare the initial input for prediction: last 'time_steps' entries from the DataFrame
+    input_sequence_df = df[feature_columns].tail(time_steps)
 
-    for steps in future_steps:
-        future_input = last_input.copy()
-        predictions = []
-        future_dates = [last_date + pd.Timedelta(days=i) for i in range(steps)]
-        for _ in range(steps):
-            prediction_scaled = model.predict(future_input)[0][0]
-            scaled_prediction = np.zeros((1, scaler.n_features_in_))
-            scaled_prediction[0, feature_columns.index('Close')] = prediction_scaled
-            future_input = np.roll(future_input, -1, axis=1)
-            future_input[0, -1, :] = scaler.inverse_transform(scaled_prediction)[0, :len(feature_columns)]
-            prediction = scaler.inverse_transform(scaled_prediction)[0, feature_columns.index('Close')]
-            predictions.append(prediction)
-        future_predictions[steps] = (future_dates, predictions)
+    for step in range(1, future_steps + 1):
+        # Suppress warnings from the scaler about the feature names
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            input_sequence_scaled = scaler.transform(input_sequence_df).reshape(1, time_steps, -1)
 
+        # Predict the next 'Close' value
+        prediction_scaled = model.predict(input_sequence_scaled)[0][0]
+
+        # Prepare the dummy input for inverse scaling
+        dummy_input_scaled = np.zeros((1, len(feature_columns)))
+        dummy_input_scaled[0, close_index] = prediction_scaled
+
+        # Convert the dummy input to a DataFrame to inverse transform and get the actual 'Close' value
+        dummy_input_df = pd.DataFrame(dummy_input_scaled, columns=feature_columns)
+        prediction = scaler.inverse_transform(dummy_input_df)[0, close_index]
+
+        # Record the prediction with the corresponding future date
+        future_date = df.index[-1] + pd.DateOffset(days=step)
+        future_predictions[future_date] = prediction
+
+        # Update the input sequence with the predicted 'Close' value
+        next_row = pd.DataFrame(np.zeros((1, len(feature_columns))), columns=feature_columns)
+        next_row.iloc[0, close_index] = prediction_scaled  # Use the scaled predicted value
+
+        # Append the predicted 'Close' value to the input sequence and discard the oldest entry
+        input_sequence_df = pd.concat([input_sequence_df.iloc[1:], next_row])
+
+    # Visualize the predictions with the actual values from the last part of the dataset and the predicted values
     plt.figure(figsize=(12, 6))
-    plt.plot(df['Date'], df['Close'], label='Actual')
-    for steps, (dates, predictions) in future_predictions.items():
-        plt.plot(dates, predictions, label=f'Predicted {steps} days')
+    plt.plot(df.index[-50:], df['Close'].tail(50), label='Actual')
+    prediction_dates = list(future_predictions.keys())
+    prediction_values = list(future_predictions.values())
+    plt.plot(prediction_dates, prediction_values, label='Predicted')
     plt.legend()
     plt.show()
 

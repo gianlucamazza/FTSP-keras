@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import joblib
 import logging
+from model import build_model
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -30,7 +31,7 @@ def load_data(filename, split_date='2020-01-01'):
     return train_data, test_data
 
 
-def create_dataset(df, feature_columns, target_column, time_steps=1):
+def create_dataset(df, feature_columns, target_column, time_steps=1, batch_size=32):
     """
     Creates a dataset for training and testing.
 
@@ -74,54 +75,72 @@ def load_scaler(path):
     return joblib.load(path)
 
 
-def train_model(epochs=10, batch_size=32):
+def create_or_load_model(input_shape, model_path='models/bitcoin_prediction_model.keras'):
     try:
-        train_data, test_data = load_data('data/scaled_data.csv')
-        feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
-        target_column = 'Close'
-
-        model = load_model('models/bitcoin_prediction_model.keras')
-
-        time_steps = 50
-        train_generator = create_dataset(train_data, feature_columns, target_column, time_steps, batch_size)
-        test_generator = create_dataset(test_data, feature_columns, target_column, time_steps, batch_size)
-
-        model.fit(train_generator, epochs=epochs, validation_data=test_generator, steps_per_epoch=len(train_generator), validation_steps=len(test_generator))
-
-        loss = model.evaluate(test_generator)
-        logging.info(f'Test Loss: {loss}')
-
-        model.save('models/bitcoin_prediction_model_trained.keras')
-    except Exception as e:
-        logging.error(f"An error occurred during training: {e}")
+        model = load_model(model_path)
+        logging.info("Model loaded successfully.")
+    except OSError:
+        logging.info("No model found. Creating a new model.")
+        model = build_model(input_shape)
+        model.save(model_path)
+    return model
 
 
-def predict_future_prices(model, last_data, future_steps=30, feature_columns=None):
+def train_model(epochs=10, batch_size=32, time_steps=50):
+    train_data, test_data = load_data('data/scaled_data.csv')
+    feature_columns = [
+        'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
+        'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD'
+    ]
+    target_column = 'Close'
+    input_shape = (time_steps, len(feature_columns))
+    model = create_or_load_model(input_shape)
+
+    train_generator = create_dataset(train_data, feature_columns, target_column, time_steps, batch_size)
+    test_generator = create_dataset(test_data, feature_columns, target_column, time_steps, batch_size)
+
+    model.fit(train_generator, epochs=epochs, validation_data=test_generator, steps_per_epoch=len(train_generator), validation_steps=len(test_generator))
+    model.save('models/bitcoin_prediction_model_trained.keras')
+
+
+def predict_future_prices(model, last_data, future_steps=30, time_steps=50, feature_columns=None):
     """
     Predicts future prices for a given number of days.
 
     Parameters:
-    model (keras.Sequential): Trained LSTM model.
+    model (keras.Sequential): The trained model.
     last_data (pandas.DataFrame): Dataframe containing the last data point.
     future_steps (int): Number of days to predict.
+    time_steps (int): Number of time steps to look back.
     feature_columns (list): List of feature column names.
 
     Returns:
-    dict: Dictionary containing the predicted prices and dates.
+    dict: Dictionary containing the predicted prices.
     """
     future_predictions = {}
-    last_input = last_data[feature_columns].tail(1).values.reshape(1, -1)
+    last_input = last_data[feature_columns].tail(time_steps).values.reshape(1, time_steps, -1)
 
     for steps in range(1, future_steps + 1):
         predicted_price = model.predict(last_input)[0][0]
-        last_input = np.roll(last_input, -1)
-        last_input[0, -1] = predicted_price
-        future_predictions[last_data.index[-1] + pd.Timedelta(days=steps)] = predicted_price
+        last_input = np.roll(last_input, -1, axis=1)
+        last_input[0, -1, :] = predicted_price
+        future_date = last_data.index[-1] + pd.DateOffset(days=steps)
+        future_predictions[future_date] = predicted_price
 
     return future_predictions
 
 
 def visualize(test_data, future_predictions):
+    """
+    Visualizes the predictions.
+
+    Parameters:
+    test_data (pandas.DataFrame): Dataframe containing the test data.
+    future_predictions (dict): Dictionary containing the predicted prices.
+
+    Returns:
+    None
+    """
     plt.figure(figsize=(12, 6))
     plt.plot(test_data.index, test_data['Close'], label='Actual')
     prediction_dates = list(future_predictions.keys())
@@ -132,14 +151,26 @@ def visualize(test_data, future_predictions):
 
 
 def evaluate():
+    """
+    Evaluates the model.
+
+    Returns:
+    float: The loss value.
+
+    Raises:
+    ValueError: If the test data is empty.
+    """
     try:
-        test_data = load_data('data/scaled_data.csv')[1]
+        _, test_data = load_data('data/scaled_data.csv')
+
         if test_data.empty:
             raise ValueError("Test data is empty.")
 
         model = load_model('models/bitcoin_prediction_model_trained.keras')
-
-        feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
+        feature_columns = [
+            'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
+            'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD'
+        ]
         target_column = 'Close'
         time_steps = 50
         test_generator = create_dataset(test_data, feature_columns, target_column, time_steps)
@@ -152,19 +183,14 @@ def evaluate():
 
 if __name__ == "__main__":
     train_model()
-
-    # Load the model and data
+    evaluate()
     model = load_model('models/bitcoin_prediction_model_trained.keras')
     test_data, _ = load_data('data/scaled_data.csv')
-
-    # Predict future prices
-    future_steps = 30  # Number of days to predict
-    feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
-    future_predictions = predict_future_prices(model, test_data, future_steps, feature_columns)
-
-    # Visualize the predictions
+    future_steps = 30
+    feature_columns = [
+        'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
+        'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD'
+    ]
+    future_predictions = predict_future_prices(model, test_data, future_steps, time_steps=50,
+                                               feature_columns=feature_columns)
     visualize(test_data, future_predictions)
-
-    # Evaluate the model
-    evaluate()
-
