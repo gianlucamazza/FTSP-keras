@@ -20,12 +20,10 @@ def load_data(file_path='data/scaled_data.csv'):
     return df
 
 
-def load_model_and_scaler(model_path='models/bitcoin_prediction_model.keras'):
+def load_model(model_path='models/bitcoin_prediction_model.keras'):
     if not os.path.exists(model_path):
         raise FileNotFoundError("Model file not found.")
-
-    model = load_model(model_path)
-    return model
+    return load_model(model_path)
 
 
 def generate_predictions(df, model, feature_columns, time_steps, future_steps):
@@ -63,7 +61,7 @@ def plot_predictions(df, future_predictions):
 
 def main(data='data/scaled_data.csv', model='models/bitcoin_prediction_model.keras', scaler='models/scaler.pkl'):
     df = load_data(data)
-    model = load_model_and_scaler(model)
+    model = load_model(model)
 
     feature_columns = [
         'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',

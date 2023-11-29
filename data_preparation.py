@@ -77,10 +77,6 @@ def calculate_technical_indicators(df):
     ValueError: If the DataFrame does not contain a 'Date' column.
     ValueError: If the DataFrame does not contain the required columns.
     """
-    required_columns = ['Close']
-    if not all(col in df.columns for col in required_columns):
-        raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
-
     df['MA50'] = df['Close'].rolling(50).mean()
     df['MA200'] = df['Close'].rolling(200).mean()
     df['Returns'] = df['Close'].pct_change()
@@ -114,7 +110,8 @@ def visualize_data(df):
 def main(file_path):
     df = load_data(file_path)
     df = calculate_technical_indicators(df)
-    columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    # columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
     df, scaler = normalize_features(df, columns_to_scale)
     save_scaler(scaler)  # Save the scaler separately
     df.to_csv('data/processed_data.csv', index=True)

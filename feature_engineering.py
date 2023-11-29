@@ -59,20 +59,21 @@ def calculate_macd(prices, n_fast=12, n_slow=26):
     return ema_fast - ema_slow
 
 
-def normalize_features(df):
+def normalize_features(df, columns_to_normalize):
     """
     Normalizes the values of the given columns using the MinMaxScaler.
 
     Parameters:
     df (pandas.DataFrame): Dataframe containing Bitcoin price data.
+    columns_to_normalize (list): List of column names to normalize.
 
     Returns:
     pandas.DataFrame: Dataframe with normalized values.
     MinMaxScaler: The fitted scaler instance.
     """
+
     scaler = MinMaxScaler()
-    numeric_columns = df.select_dtypes(include=['number']).columns
-    df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
+    df[columns_to_normalize] = scaler.fit_transform(df[columns_to_normalize])
     return df, scaler
 
 
@@ -91,7 +92,8 @@ def save_scaler(scaler, path='models/scaler.pkl'):
 def main(data, output):
     df = pd.read_csv(data, index_col='Date')
     df = add_additional_features(df)
-    df_scaled, scaler = normalize_features(df)
+    columns_to_normalize = ['RSI', 'MACD', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    df_scaled, scaler = normalize_features(df, columns_to_normalize)
     save_scaler(scaler)  # Save the scaler after normalization
     df_scaled.to_csv(output, index=True)
     print("Data scaled and saved successfully.")
