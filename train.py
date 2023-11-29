@@ -1,4 +1,6 @@
 # train.py
+import argparse
+
 import pandas as pd
 import joblib
 import logging
@@ -12,38 +14,47 @@ from sklearn.preprocessing import MinMaxScaler
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def load_data(filename: str, split_date: str = '2020-01-01') -> (pd.DataFrame, pd.DataFrame):
+def load_and_preprocess_data(filename: str, split_date: str = '2020-01-01', scaler_path: str = None) -> (
+        pd.DataFrame, pd.DataFrame):
     """
-    Load Bitcoin price data from a CSV file and split into training and test sets.
+    Load Bitcoin price data from a CSV file, apply scaling, and split into training and test sets.
     """
     if not os.path.exists(filename):
         raise FileNotFoundError(f"The file {filename} does not exist.")
 
+    # Load Data
     df = pd.read_csv(filename, parse_dates=['Date'], index_col='Date')
     df = df.sort_index()  # Ensure the data is sorted by date
 
+    # Check for NaNs
+    if df.isna().any().any():
+        logging.info("Data contains NaN values. Cleaning the data.")
+        df = df.fillna(method='ffill').fillna(method='bfill')
+
+    # Scaling
+    if scaler_path and os.path.exists(scaler_path):
+        scaler = joblib.load(scaler_path)
+        df[df.columns] = scaler.transform(df)
+
+    # Split Data
     if split_date not in df.index:
         raise ValueError(f"The split date {split_date} is not in the data range.")
+    train_df = df.loc[df.index < split_date]
+    test_df = df.loc[df.index >= split_date]
 
-    train_data = df.loc[df.index < split_date]
-    test_data = df.loc[df.index >= split_date]
-
-    if train_data.empty or test_data.empty:
+    if train_df.empty or test_df.empty:
         raise ValueError("Training or testing set is empty after split. Check your split date and data.")
 
-    return train_data, test_data
+    return train_df, test_df
 
 
-def create_dataset(df: pd.DataFrame, feature_columns: list, target_column: str, time_steps: int = 1,
+def create_dataset(df: pd.DataFrame, features: list, target: str, time_steps: int = 50,
                    batch_size: int = 32) -> TimeseriesGenerator:
     """
     Create a dataset for model training and evaluation using a time series generator.
     """
-    if len(df) < time_steps:
-        raise ValueError(f"The DataFrame is too small for the given time_steps: {time_steps}")
-
-    X = df[feature_columns].values
-    y = df[[target_column]].values
+    X = df[features].values
+    y = df[[target]].values
     return TimeseriesGenerator(X, y, length=time_steps, batch_size=batch_size)
 
 
@@ -98,13 +109,20 @@ def evaluate(model: 'Sequential', test_generator: TimeseriesGenerator) -> float:
 
 
 if __name__ == "__main__":
-    # Main execution sequence
-    data_path = 'data/scaled_data.csv'
-    model_path = 'models/bitcoin_prediction_model.keras'
-    scaler_path = 'models/scaler.pkl'
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_path", type=str, default='data/scaled_data.csv')
+    parser.add_argument("--split_date", type=str, default='2020-01-01')
+    parser.add_argument("--model_path", type=str, default='models/bitcoin_prediction_model.keras')
+    parser.add_argument("--scaler_path", type=str, default='models/scaler.pkl')
+
+    args = parser.parse_args()
+    data_path = args.data_path
+    model_path = args.model_path
+    scaler_path = args.scaler_path
 
     # Load and prepare data
-    train_data, test_data = load_data(data_path)
+    train_data, test_data = load_and_preprocess_data(args.data_path, args.split_date, args.scaler_path)
     feature_columns = get_numeric_columns(train_data)
     target_column = 'Close'
 

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 import os
+import argparse
 
 
 def load_data(file_path):
@@ -110,8 +111,7 @@ def visualize_data(df):
     plt.show()
 
 
-def main():
-    file_path = 'data/BTC-USD.csv'
+def main(file_path):
     df = load_data(file_path)
     df = calculate_technical_indicators(df)
     columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
@@ -120,5 +120,11 @@ def main():
     df.to_csv('data/processed_data.csv', index=True)
     visualize_data(df)
 
+
 if __name__ == '__main__':
-    main()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file_path", type=str, default='data/BTC-USD.csv')
+    args = parser.parse_args()
+
+    main(args.file_path)

@@ -1,4 +1,6 @@
 # model.py
+import argparse
+
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 
@@ -30,11 +32,18 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', loss='me
     return model
 
 
-def main():
-    input_shape = (50, 15)
+def main(input_shape, model_path):
     model = build_model(input_shape)
-    model.save('models/bitcoin_prediction_model.keras')
+    model.save(model_path)
+    print("Model built and saved successfully.")
+    print(model.summary())
 
 
 if __name__ == "__main__":
-    main()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_shape", nargs=2, type=int, default=[50, 15])
+    parser.add_argument("--model_path", type=str, default='models/bitcoin_prediction_model.keras')
+    args = parser.parse_args()
+    input_shape = tuple(args.input_shape)
+    main(input_shape, args.model_path)
