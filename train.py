@@ -63,7 +63,7 @@ def load_scaler(path: str) -> MinMaxScaler:
     return joblib.load(path)
 
 
-def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_prediction_model.h5') -> 'Sequential':
+def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_prediction_model.keras') -> 'Sequential':
     """
     Load an existing model or create a new one if it doesn't exist.
     """
@@ -100,7 +100,7 @@ def evaluate(model: 'Sequential', test_generator: TimeseriesGenerator) -> float:
 if __name__ == "__main__":
     # Main execution sequence
     data_path = 'data/scaled_data.csv'
-    model_path = 'models/bitcoin_prediction_model.h5'
+    model_path = 'models/bitcoin_prediction_model.keras'
     scaler_path = 'models/scaler.pkl'
 
     # Load and prepare data

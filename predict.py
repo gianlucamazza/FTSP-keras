@@ -14,7 +14,7 @@ def main():
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
 
-    model = load_model('models/bitcoin_prediction_model.h5')
+    model = load_model('models/bitcoin_prediction_model.keras')
     scaler = joblib.load('models/scaler.pkl')
     feature_columns = [
         'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
