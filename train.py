@@ -1,132 +1,121 @@
+# train.py
 import pandas as pd
+import joblib
+import logging
+import os
 from keras.models import load_model
 from keras.preprocessing.sequence import TimeseriesGenerator
-import numpy as np
-import matplotlib.pyplot as plt
-import joblib
+from model import build_model
+from sklearn.preprocessing import MinMaxScaler
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def load_data(filename):
+def load_data(filename: str, split_date: str = '2020-01-01') -> (pd.DataFrame, pd.DataFrame):
     """
-    Loads Bitcoin price data from a CSV file.
-
-    Parameters:
-    file_path (str): Path to the CSV file containing the data.
-
-    Returns:
-    train_data (pandas.DataFrame): Dataframe containing the training data.
-    test_data (pandas.DataFrame): Dataframe containing the test data.
+    Load Bitcoin price data from a CSV file and split into training and test sets.
     """
-    df = pd.read_csv(filename)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
-    df = df.dropna()
-    train_data = df[df.index < '2020-01-01']
-    test_data = df[df.index >= '2020-01-01']
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"The file {filename} does not exist.")
+
+    df = pd.read_csv(filename, parse_dates=['Date'], index_col='Date')
+    df = df.sort_index()  # Ensure the data is sorted by date
+
+    if split_date not in df.index:
+        raise ValueError(f"The split date {split_date} is not in the data range.")
+
+    train_data = df.loc[df.index < split_date]
+    test_data = df.loc[df.index >= split_date]
+
+    if train_data.empty or test_data.empty:
+        raise ValueError("Training or testing set is empty after split. Check your split date and data.")
+
     return train_data, test_data
 
 
-def create_dataset(df, feature_column, target_column, time_steps=1):
+def create_dataset(df: pd.DataFrame, feature_columns: list, target_column: str, time_steps: int = 1,
+                   batch_size: int = 32) -> TimeseriesGenerator:
     """
-    Creates a dataset for training and testing.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-    feature_column (str): Name of the column containing the feature data.
-    target_column (str): Name of the column containing the target data.
-    time_steps (int): Number of time steps to look back.
-
-    Returns:
-    keras.preprocessing.sequence.TimeseriesGenerator: A generator that generates batches of temporal data.
+    Create a dataset for model training and evaluation using a time series generator.
     """
-    data = df[feature_column].values
-    target = df[target_column].values
-    return TimeseriesGenerator(data, target, length=time_steps, batch_size=1)
+    if len(df) < time_steps:
+        raise ValueError(f"The DataFrame is too small for the given time_steps: {time_steps}")
+
+    X = df[feature_columns].values
+    y = df[[target_column]].values
+    return TimeseriesGenerator(X, y, length=time_steps, batch_size=batch_size)
 
 
-def get_numeric_columns(df):
+def get_numeric_columns(df: pd.DataFrame) -> list:
     """
-    Returns a list of column names containing numeric data.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-
-    Returns:
-    list: List of column names containing numeric data.
+    Retrieve column names for numeric data types within the DataFrame.
     """
-    return df.select_dtypes(include=['number']).columns
+    return df.select_dtypes(include=['number']).columns.tolist()
 
 
-def load_scaler(path):
+def load_scaler(path: str) -> MinMaxScaler:
     """
-    Loads a pre-fitted MinMaxScaler from a file.
-
-    Parameters:
-    path (str): Path to the saved scaler file.
-
-    Returns:
-    MinMaxScaler: The loaded scaler.
+    Load a pre-fitted MinMaxScaler from a file.
     """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"The scaler file {path} does not exist.")
     return joblib.load(path)
 
 
-if __name__ == "__main__":
-    train_data, test_data = load_data('data/scaled_data.csv')
+def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_prediction_model.keras') -> 'Sequential':
+    """
+    Load an existing model or create a new one if it doesn't exist.
+    """
+    if not os.path.exists(model_path):
+        logging.info("No model found. Creating a new model.")
+        model = build_model(input_shape)
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        model.save(model_path)
+    else:
+        model = load_model(model_path)
+        logging.info("Model loaded successfully.")
+    return model
 
-    feature_columns = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD']
+
+def train_model(model: 'Sequential', train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator,
+                epochs: int = 10) -> 'Sequential':
+    """
+    Train the LSTM model.
+    """
+    history = model.fit(train_generator, epochs=epochs, validation_data=test_generator,
+                        steps_per_epoch=len(train_generator), validation_steps=len(test_generator))
+    return model, history
+
+
+def evaluate(model: 'Sequential', test_generator: TimeseriesGenerator) -> float:
+    """
+    Evaluates the model on the test data.
+    """
+    loss, metric = model.evaluate(test_generator)
+    logging.info(f'Test Loss: {loss}, Test Metric: {metric}')
+    return loss
+
+
+if __name__ == "__main__":
+    # Main execution sequence
+    data_path = 'data/scaled_data.csv'
+    model_path = 'models/bitcoin_prediction_model.keras'
+    scaler_path = 'models/scaler.pkl'
+
+    # Load and prepare data
+    train_data, test_data = load_data(data_path)
+    feature_columns = get_numeric_columns(train_data)
     target_column = 'Close'
 
-    numeric_columns = get_numeric_columns(test_data)
+    # Model creation or loading
+    input_shape = (50, len(feature_columns))
+    model = create_or_load_model(input_shape, model_path)
 
-    model = load_model('models/bitcoin_prediction_model.keras')
+    # Data generators
+    train_generator = create_dataset(train_data, feature_columns, target_column)
+    test_generator = create_dataset(test_data, feature_columns, target_column)
 
-    time_steps = 50
-    train_generator = create_dataset(train_data, feature_columns, target_column, time_steps)
-    test_generator = create_dataset(test_data, feature_columns, target_column, time_steps)
-
-    model.fit(train_generator, epochs=10)
-
-    loss = model.evaluate(test_generator)
-    print(f'Test Loss: {loss}')
-
-    model.save('models/bitcoin_prediction_model_trained.keras')
-
-    last_input = test_data[feature_columns].values[-time_steps:].reshape(1, time_steps, -1)
-
-    future_steps = [1, 7, 30]
-    future_predictions = {}
-
-    last_date = test_data.index[-1]  # Ultima data nel DataFrame
-
-    scaler = load_scaler('models/scaler.pkl')
-
-    for steps in future_steps:
-        future_input = last_input.copy()
-        predictions = []
-        future_dates = [last_date + pd.Timedelta(days=i) for i in range(1, steps + 1)]
-        for _ in range(steps):
-            prediction_scaled = model.predict(future_input)[0][0]
-
-            scaled_prediction = np.zeros(
-                (1, len(numeric_columns)))
-            scaled_prediction[
-                0, 0] = prediction_scaled
-
-            prediction = scaler.inverse_transform(scaled_prediction)[0, 0]
-            predictions.append(prediction)
-
-            new_input = np.roll(future_input, -1, axis=1)
-            new_input[0, -1, :] = np.zeros(future_input.shape[2])
-            new_input[0, -1, 0] = prediction_scaled
-            future_input = new_input
-
-        future_predictions[steps] = (future_dates, predictions)
-
-    # Plot the predictions
-    plt.figure(figsize=(12, 6))
-    for steps, (dates, predictions) in future_predictions.items():
-        plt.plot(dates, predictions, label=f'Predicted {steps} days')
-    plt.plot(test_data.index[-(time_steps + 30):], test_data['Close'].values[-(time_steps + 30):], label='Actual')
-    plt.legend()
-    plt.show()
-
+    # Model training and evaluation
+    model, history = train_model(model, train_generator, test_generator)
+    evaluate(model, test_generator)

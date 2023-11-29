@@ -1,53 +1,56 @@
+# feature_engineering.py
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import joblib
+import os
 
 
 def add_additional_features(df):
     """
-    Adds additional technical indicators (RSI and MACD) to the DataFrame.
+    Adds additional features to the given dataframe.
 
     Parameters:
     df (pandas.DataFrame): Dataframe containing Bitcoin price data.
 
     Returns:
-    pandas.DataFrame: Dataframe with additional columns for technical indicators.
+    pandas.DataFrame: Dataframe with additional features.
     """
     df['RSI'] = calculate_rsi(df['Close'])
     df['MACD'] = calculate_macd(df['Close'])
-    return df
+    return df.ffill()
 
 
 def calculate_rsi(prices, n=14):
     """
-    Calculates the Relative Strength Index (RSI) for a given price series.
+    Calculates the Relative Strength Index (RSI) for the given prices.
 
     Parameters:
-    prices (pandas.Series): Series of prices.
-    n (int): Lookback period.
+    prices (pandas.Series): Series containing the prices.
+    n (int): Number of time steps to look back.
 
     Returns:
-    pandas.Series: Series of RSI values.
+    pandas.Series: Series containing the RSI values.
     """
-    deltas = prices.diff().fillna(0)
-    gain = deltas.clip(lower=0)
-    loss = -deltas.clip(upper=0)
-    avg_gain = gain.rolling(window=n).mean()
-    avg_loss = loss.rolling(window=n).mean()
-    rs = avg_gain / avg_loss
+    deltas = prices.diff()
+    loss = deltas.where(deltas < 0, 0)
+    gain = deltas.where(deltas > 0, 0)
+    avg_gain = gain.rolling(window=n, min_periods=1).mean()
+    avg_loss = -loss.rolling(window=n, min_periods=1).mean()
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
     return 100 - (100 / (1 + rs))
 
 
 def calculate_macd(prices, n_fast=12, n_slow=26):
     """
-    Calculates the Moving Average Convergence/Divergence (MACD) for a given price series.
+    Calculates the Moving Average Convergence Divergence (MACD) for the given prices.
 
     Parameters:
-    prices (pandas.Series): Series of prices.
-    n_fast (int): Lookback period for fast EMA.
-    n_slow (int): Lookback period for slow EMA.
+    prices (pandas.Series): Series containing the prices.
+    n_fast (int): Number of time steps to use for the fast EMA.
+    n_slow (int): Number of time steps to use for the slow EMA.
 
     Returns:
-    pandas.Series: Series of MACD values.
+    pandas.Series: Series containing the MACD values.
     """
     ema_fast = prices.ewm(span=n_fast, min_periods=n_slow).mean()
     ema_slow = prices.ewm(span=n_slow, min_periods=n_slow).mean()
@@ -56,34 +59,39 @@ def calculate_macd(prices, n_fast=12, n_slow=26):
 
 def normalize_features(df):
     """
-    Normalizes the numerical features in the DataFrame using MinMaxScaler.
+    Normalizes the values of the given columns using the MinMaxScaler.
 
     Parameters:
     df (pandas.DataFrame): Dataframe containing Bitcoin price data.
 
     Returns:
-    pandas.DataFrame: Dataframe with normalized numerical features.
+    pandas.DataFrame: Dataframe with normalized values.
+    MinMaxScaler: The fitted scaler instance.
     """
     scaler = MinMaxScaler()
     numeric_columns = df.select_dtypes(include=['number']).columns
     df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
-    return df
+    return df, scaler
+
+
+def save_scaler(scaler, path='models/scaler.pkl'):
+    """
+    Saves the MinMaxScaler to a file.
+
+    Parameters:
+    scaler (MinMaxScaler): The fitted scaler instance.
+    path (str): File path to save the scaler.
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    joblib.dump(scaler, path)
 
 
 def main():
-    df = pd.read_csv('data/processed_data.csv')
-
-    # Handle 'Date' column
-    dates = pd.to_datetime(df.pop('Date')) if 'Date' in df.columns else None
-
+    df = pd.read_csv('data/processed_data.csv', index_col='Date')
     df = add_additional_features(df)
-    df_scaled = normalize_features(df)
-
-    # Reattach 'Date' column and set as index
-    if dates is not None:
-        df_scaled = df_scaled.set_index(dates)
-
-    df_scaled.to_csv('data/scaled_data.csv', index_label='Date')
+    df_scaled, scaler = normalize_features(df)
+    save_scaler(scaler)  # Save the scaler after normalization
+    df_scaled.to_csv('data/scaled_data.csv', index=True)
 
 
 if __name__ == '__main__':

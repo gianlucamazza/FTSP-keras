@@ -1,7 +1,9 @@
+# data_preparation.py
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import joblib
+import os
 
 
 def load_data(file_path):
@@ -12,86 +14,99 @@ def load_data(file_path):
     file_path (str): Path to the CSV file containing the data.
 
     Returns:
-    pandas.DataFrame: Dataframe containing the loaded data.
+    pandas.DataFrame: Dataframe containing the data.
+
+    Raises:
+    FileNotFoundError: If the file does not exist.
+    pd.errors.EmptyDataError: If the file is empty.
     """
-    return pd.read_csv(file_path)
+    try:
+        df = pd.read_csv(file_path)
+
+        if 'Date' not in df.columns:
+            raise ValueError("DataFrame must contain a 'Date' column.")
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.set_index('Date', inplace=True)
+
+        if df.isnull().any().any():
+            df.interpolate(method='time', inplace=True)
+        return df
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File '{file_path}' not found.")
+    except pd.errors.EmptyDataError:
+        raise pd.errors.EmptyDataError(f"File '{file_path}' is empty.")
 
 
 def normalize_features(df, columns_to_scale):
     """
-    Normalizes specified columns in the DataFrame.
+    Normalizes the values of the given columns using the MinMaxScaler.
 
     Parameters:
-    df (pandas.DataFrame): Dataframe containing data to normalize.
-    columns_to_scale (list): List of column names to normalize.
+    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
+    columns_to_scale (list): List of column names to scale.
 
     Returns:
-    pandas.DataFrame: Dataframe with normalized columns.
+    pandas.DataFrame: Dataframe with normalized values.
     """
+    missing_columns = [col for col in columns_to_scale if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Columns not found in DataFrame: {missing_columns}")
+
     scaler = MinMaxScaler()
     df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+    return df, scaler
 
-    # Salva lo scaler per un uso futuro
-    joblib.dump(scaler, 'models/scaler.pkl')
-    return df
+
+def save_scaler(scaler, path='models/scaler.pkl'):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    joblib.dump(scaler, path)
 
 
 def calculate_technical_indicators(df):
     """
-    Calculates various technical indicators for Bitcoin price analysis.
+    Calculates technical indicators for the given price data.
 
     Parameters:
     df (pandas.DataFrame): Dataframe containing Bitcoin price data.
 
     Returns:
-    pandas.DataFrame: Dataframe with additional columns for technical indicators.
-    """
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
+    pandas.DataFrame: Dataframe with technical indicators.
 
-    # Moving averages
+    Raises:
+    ValueError: If the DataFrame does not contain a 'Date' column.
+    ValueError: If the DataFrame does not contain the required columns.
+    """
+    required_columns = ['Close']
+    if not all(col in df.columns for col in required_columns):
+        raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
+
     df['MA50'] = df['Close'].rolling(50).mean()
     df['MA200'] = df['Close'].rolling(200).mean()
-
-    # Daily returns
     df['Returns'] = df['Close'].pct_change()
-
-    # Volatility (standard deviation of returns)
     df['Volatility'] = df['Returns'].rolling(50).std()
-
-    # Bollinger Bands
     df['MA20'] = df['Close'].rolling(20).mean()
     df['Upper'] = df['MA20'] + 2 * df['Volatility']
     df['Lower'] = df['MA20'] - 2 * df['Volatility']
-
     return df
 
 
-def plot_technical_indicators(df):
+def visualize_data(df):
     """
-    Plots various technical indicators for Bitcoin price data.
+    Visualizes the given data.
 
     Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data and technical indicators.
+    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
     """
-    # Moving Averages Plot
-    df[['Close', 'MA50', 'MA200']].plot(figsize=(12, 6))
-    plt.title('Bitcoin Price and Moving Averages')
-    plt.show()
-
-    # Returns Plot
-    df['Returns'].plot(figsize=(12, 6))
-    plt.title('Bitcoin Daily Returns')
-    plt.show()
-
-    # Volatility Plot
-    df['Volatility'].plot(figsize=(12, 6))
-    plt.title('Bitcoin Price Volatility')
-    plt.show()
-
-    # Bollinger Bands Plot
-    df[['Close', 'MA20', 'Upper', 'Lower']].plot(figsize=(12, 6))
-    plt.title('Bitcoin Price and Bollinger Bands')
+    plt.figure(figsize=(15, 10))
+    plt.plot(df['Close'], label='Close')
+    plt.plot(df['MA50'], label='MA50')
+    plt.plot(df['MA200'], label='MA200')
+    plt.plot(df['Upper'], label='Upper')
+    plt.plot(df['Lower'], label='Lower')
+    plt.title('Bitcoin price history')
+    plt.ylabel('Price (USD)')
+    plt.xlabel('Date')
+    plt.legend(loc='upper left')
     plt.show()
 
 
@@ -100,10 +115,10 @@ def main():
     df = load_data(file_path)
     df = calculate_technical_indicators(df)
     columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
-    df = normalize_features(df, columns_to_scale)
-    plot_technical_indicators(df)
-    df.to_csv('data/processed_data.csv', index_label='Date')
-
+    df, scaler = normalize_features(df, columns_to_scale)
+    save_scaler(scaler)  # Save the scaler separately
+    df.to_csv('data/processed_data.csv', index=True)
+    visualize_data(df)
 
 if __name__ == '__main__':
     main()
