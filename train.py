@@ -1,12 +1,18 @@
 # train.py
+from typing import Tuple, Any
+
 import pandas as pd
 import joblib
 import logging
 import os
+
+from keras import Sequential
 from keras.models import load_model
 from keras.preprocessing.sequence import TimeseriesGenerator
 from model import build_model
 from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -79,7 +85,7 @@ def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_p
 
 
 def train_model(model: 'Sequential', train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator,
-                epochs: int = 10) -> 'Sequential':
+                epochs: int = 10) -> tuple[Sequential, Any]:
     """
     Train the LSTM model.
     """
