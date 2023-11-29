@@ -5,7 +5,6 @@ SCALED_DATA_PATH = "data/scaled_data.csv"
 MODEL_PATH = "models/bitcoin_prediction_model.keras"
 SCALER_PATH = "models/scaler.pkl"
 BTC_CSV_PATH = "data/BTC-USD.csv"
-SPLIT_DATE = "2022-01-01"
 
 
 def clean_data():
@@ -38,8 +37,8 @@ if __name__ == "__main__":
         ("data_preparation.py", ["--file_path", BTC_CSV_PATH]),
         ("feature_engineering.py", ["--data", PROCESSED_DATA_PATH, "--output", SCALED_DATA_PATH]),
         ("model.py", ["--input_shape", "50", "15"]),
-        ("train.py", ["--data_path", SCALED_DATA_PATH, "--split_date", SPLIT_DATE, "--model_path", MODEL_PATH, "--scaler_path", SCALER_PATH]),
-        ("predict.py", ["--data", SCALED_DATA_PATH, "--model", MODEL_PATH, "--scaler", SCALER_PATH])
+        ("train.py", ["--data_path", SCALED_DATA_PATH, "--model_path", MODEL_PATH, "--scaler_path", SCALER_PATH]),
+        ("predict.py", ["--data", SCALED_DATA_PATH, "--model", MODEL_PATH])
     ]
 
     for script, args in scripts:

@@ -1,6 +1,6 @@
 # train.py
 import argparse
-
+import datetime
 import pandas as pd
 import joblib
 import logging
@@ -9,43 +9,24 @@ from keras.models import load_model
 from keras.preprocessing.sequence import TimeseriesGenerator
 from model import build_model
 from sklearn.preprocessing import MinMaxScaler
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.models import Sequential
+from keras.layers import LSTM, Dense, Dropout
+import gc
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def load_and_preprocess_data(filename: str, split_date: str = '2020-01-01', scaler_path: str = None) -> (
-        pd.DataFrame, pd.DataFrame):
-    """
-    Load Bitcoin price data from a CSV file, apply scaling, and split into training and test sets.
-    """
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"The file {filename} does not exist.")
-
-    # Load Data
-    df = pd.read_csv(filename, parse_dates=['Date'], index_col='Date')
-    df = df.sort_index()  # Ensure the data is sorted by date
-
-    # Check for NaNs
-    if df.isna().any().any():
-        logging.info("Data contains NaN values. Cleaning the data.")
-        df = df.fillna(method='ffill').fillna(method='bfill')
-
-    # Scaling
-    if scaler_path and os.path.exists(scaler_path):
-        scaler = joblib.load(scaler_path)
-        df[df.columns] = scaler.transform(df)
-
-    # Split Data
-    if split_date not in df.index:
-        raise ValueError(f"The split date {split_date} is not in the data range.")
-    train_df = df.loc[df.index < split_date]
-    test_df = df.loc[df.index >= split_date]
-
-    if train_df.empty or test_df.empty:
-        raise ValueError("Training or testing set is empty after split. Check your split date and data.")
-
-    return train_df, test_df
+def build_model(input_shape, neurons1=64, neurons2=8, dropout=0.1, optimizer='adam', loss='mean_squared_error', metrics=['mae']):
+    model = Sequential()
+    model.add(LSTM(neurons1, return_sequences=True, input_shape=input_shape))
+    model.add(Dropout(dropout))
+    model.add(LSTM(neurons2, return_sequences=False))
+    model.add(Dropout(dropout))
+    model.add(Dense(1))
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+    return model
 
 
 def create_dataset(df: pd.DataFrame, features: list, target: str, time_steps: int = 50,
@@ -89,13 +70,15 @@ def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_p
     return model
 
 
-def train_model(model: 'Sequential', train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator,
-                epochs: int = 10) -> 'Sequential':
+def train_model(model: Sequential, train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator, model_path: str, epochs: int = 10) -> Sequential:
     """
     Train the LSTM model.
     """
-    history = model.fit(train_generator, epochs=epochs, validation_data=test_generator,
-                        steps_per_epoch=len(train_generator), validation_steps=len(test_generator))
+    callbacks = [
+        EarlyStopping(monitor='val_loss', patience=3),
+        ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min')
+    ]
+    history = model.fit(train_generator, epochs=epochs, validation_data=test_generator, callbacks=callbacks)
     return model, history
 
 
@@ -108,32 +91,69 @@ def evaluate(model: 'Sequential', test_generator: TimeseriesGenerator) -> float:
     return loss
 
 
+def generate_data_splits(df, start_date, end_date, k=5):
+    total_days = (end_date - start_date).days
+    fold_size = total_days // k
+
+    for i in range(k):
+        train_end = start_date + datetime.timedelta(days=fold_size * i)
+        test_end = start_date + datetime.timedelta(days=fold_size * (i + 1))
+
+        if i == k - 1:
+            test_end = end_date
+
+        train_df = df.loc[start_date:train_end]
+        test_df = df.loc[train_end + datetime.timedelta(days=1):test_end]
+
+        yield train_df, test_df
+
+
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", type=str, default='data/scaled_data.csv')
-    parser.add_argument("--split_date", type=str, default='2020-01-01')
     parser.add_argument("--model_path", type=str, default='models/bitcoin_prediction_model.keras')
     parser.add_argument("--scaler_path", type=str, default='models/scaler.pkl')
 
     args = parser.parse_args()
-    data_path = args.data_path
-    model_path = args.model_path
-    scaler_path = args.scaler_path
 
-    # Load and prepare data
-    train_data, test_data = load_and_preprocess_data(args.data_path, args.split_date, args.scaler_path)
-    feature_columns = get_numeric_columns(train_data)
-    target_column = 'Close'
+    # Load and prepare the data
+    df = pd.read_csv(args.data_path, parse_dates=['Date'], index_col='Date')
+    df.sort_index(inplace=True)
+    df.fillna(method='ffill', inplace=True)
 
-    # Model creation or loading
-    input_shape = (50, len(feature_columns))
-    model = create_or_load_model(input_shape, model_path)
+    # Load the scaler if it exists
+    if args.scaler_path and os.path.exists(args.scaler_path):
+        scaler = joblib.load(args.scaler_path)
+        df[df.columns] = scaler.transform(df)
 
-    # Data generators
-    train_generator = create_dataset(train_data, feature_columns, target_column)
-    test_generator = create_dataset(test_data, feature_columns, target_column)
+    start_date = datetime.datetime(2014, 9, 17)
+    end_date = datetime.datetime(2023, 11, 27)
 
-    # Model training and evaluation
-    model, history = train_model(model, train_generator, test_generator)
-    evaluate(model, test_generator)
+    performance_metrics = []
+
+    for train_df, test_df in generate_data_splits(df, start_date, end_date):
+        feature_columns = train_df.select_dtypes(include=['number']).columns.tolist()
+        target_column = 'Close'
+
+        if len(train_df) < 50:
+            logging.info("Skipping fold due to insufficient data.")
+            continue
+
+        input_shape = (50, len(feature_columns))
+        train_generator = create_dataset(train_df, feature_columns, target_column)
+        test_generator = create_dataset(test_df, feature_columns, target_column)
+
+        model = build_model(input_shape)
+
+        callbacks = [EarlyStopping(monitor='val_loss', patience=3)]
+        history = model.fit(train_generator, epochs=10, validation_data=test_generator, callbacks=callbacks)
+
+        loss, metric = model.evaluate(test_generator)
+        logging.info(f'Test Loss: {loss}, Test Metric: {metric}')
+        performance_metrics.append((loss, metric))
+
+        del model
+        gc.collect()
+
+    logging.info("Cross-validation complete. Performance metrics: {}".format(performance_metrics))

@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 
 
-def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', loss='mean_squared_error', metrics=None):
+def build_model(input_shape, neurons1=64, neurons2=8,dropout=0.1, optimizer='adam', loss='mean_squared_error', metrics=None):
     """
     Builds a LSTM model.
 
@@ -23,9 +23,9 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', loss='me
     if metrics is None:
         metrics = ['mae']
     model = Sequential()
-    model.add(LSTM(neurons, return_sequences=True, input_shape=input_shape))
+    model.add(LSTM(neurons1, return_sequences=True, input_shape=input_shape))
     model.add(Dropout(dropout))
-    model.add(LSTM(neurons, return_sequences=False))
+    model.add(LSTM(neurons2, return_sequences=False))
     model.add(Dropout(dropout))
     model.add(Dense(1))
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
