@@ -90,6 +90,26 @@ def calculate_technical_indicators(df):
     return df
 
 
+def visualize_data(df):
+    """
+    Visualizes the given data.
+
+    Parameters:
+    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
+    """
+    plt.figure(figsize=(15, 10))
+    plt.plot(df['Close'], label='Close')
+    plt.plot(df['MA50'], label='MA50')
+    plt.plot(df['MA200'], label='MA200')
+    plt.plot(df['Upper'], label='Upper')
+    plt.plot(df['Lower'], label='Lower')
+    plt.title('Bitcoin price history')
+    plt.ylabel('Price (USD)')
+    plt.xlabel('Date')
+    plt.legend(loc='upper left')
+    plt.show()
+
+
 def main():
     file_path = 'data/BTC-USD.csv'
     df = load_data(file_path)
@@ -98,7 +118,7 @@ def main():
     df, scaler = normalize_features(df, columns_to_scale)
     save_scaler(scaler)  # Save the scaler separately
     df.to_csv('data/processed_data.csv', index=True)
-
+    visualize_data(df)
 
 if __name__ == '__main__':
     main()
