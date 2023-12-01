@@ -23,7 +23,7 @@ def load_data(file_path='data/scaled_data.csv'):
 def load_model(model_path='models/bitcoin_prediction_model.keras'):
     if not os.path.exists(model_path):
         raise FileNotFoundError("Model file not found.")
-    return load_model(model_path)
+    return
 
 
 def generate_predictions(df, model, feature_columns, time_steps, future_steps):

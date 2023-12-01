@@ -92,10 +92,11 @@ def save_scaler(scaler, path='models/scaler.pkl'):
 def main(data, output):
     df = pd.read_csv(data, index_col='Date')
     df = add_additional_features(df)
-    columns_to_normalize = ['RSI', 'MACD', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
-    df_scaled, scaler = normalize_features(df, columns_to_normalize)
-    save_scaler(scaler)  # Save the scaler after normalization
-    df_scaled.to_csv(output, index=True)
+    # columns_to_normalize = ['RSI', 'MACD', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    # df_scaled, scaler = normalize_features(df, columns_to_normalize)
+    # save_scaler(scaler)  # Save the scaler after normalization
+    # df_scaled.to_csv(output, index=True)
+    df.to_csv(output, index=True)
     print("Data scaled and saved successfully.")
 
 
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', type=str, default='data/processed_data.csv',
                         help='Path to the CSV file containing the data.')
     parser.add_argument('--output', type=str, default='data/scaled_data.csv',
-                        help='Path to save the scaled data.')
+                       help='Path to save the scaled data.')
     args = parser.parse_args()
 
     main(args.data, args.output)

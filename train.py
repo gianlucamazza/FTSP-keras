@@ -12,13 +12,13 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
-import gc
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def build_model(input_shape, neurons1=64, neurons2=8, dropout=0.1, optimizer='adam', loss='mean_squared_error', metrics=['mae']):
+def build_model(input_shape, neurons1=64, neurons2=8, dropout=0.1, optimizer='adam', loss='mean_squared_error',
+                metrics=['mae']):
     model = Sequential()
     model.add(LSTM(neurons1, return_sequences=True, input_shape=input_shape))
     model.add(Dropout(dropout))
@@ -35,15 +35,8 @@ def create_dataset(df: pd.DataFrame, features: list, target: str, time_steps: in
     Create a dataset for model training and evaluation using a time series generator.
     """
     X = df[features].values
-    y = df[[target]].values
+    y = df[[target]].values # The model will predict the target column: example: 'Close'
     return TimeseriesGenerator(X, y, length=time_steps, batch_size=batch_size)
-
-
-def get_numeric_columns(df: pd.DataFrame) -> list:
-    """
-    Retrieve column names for numeric data types within the DataFrame.
-    """
-    return df.select_dtypes(include=['number']).columns.tolist()
 
 
 def load_scaler(path: str) -> MinMaxScaler:
@@ -70,7 +63,8 @@ def create_or_load_model(input_shape: tuple, model_path: str = 'models/bitcoin_p
     return model
 
 
-def train_model(model: Sequential, train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator, model_path: str, epochs: int = 10) -> Sequential:
+def train_model(model: Sequential, train_generator: TimeseriesGenerator, test_generator: TimeseriesGenerator,
+                model_path: str, epochs: int = 100) -> Sequential:
     """
     Train the LSTM model.
     """
@@ -91,21 +85,33 @@ def evaluate(model: 'Sequential', test_generator: TimeseriesGenerator) -> float:
     return loss
 
 
-def generate_data_splits(df, start_date, end_date, k=5):
+def generate_data_splits(df, start_date, end_date, overlap=10, k=50):
     total_days = (end_date - start_date).days
     fold_size = total_days // k
 
     for i in range(k):
         train_end = start_date + datetime.timedelta(days=fold_size * i)
         test_end = start_date + datetime.timedelta(days=fold_size * (i + 1))
-
-        if i == k - 1:
-            test_end = end_date
+        test_end = test_end if i < k - 1 else end_date
 
         train_df = df.loc[start_date:train_end]
-        test_df = df.loc[train_end + datetime.timedelta(days=1):test_end]
+        test_df = df.loc[train_end - datetime.timedelta(days=overlap):test_end]
 
         yield train_df, test_df
+
+
+def generate_combined_dataset(df, start_date, end_date, overlap, folds, feature_columns, target):
+    all_train_df = pd.DataFrame()
+    all_test_df = pd.DataFrame()
+
+    for train_df, test_df in generate_data_splits(df, start_date, end_date, overlap, folds):
+        all_train_df = pd.concat([all_train_df, train_df])
+        all_test_df = pd.concat([all_test_df, test_df])
+
+    train_generator = create_dataset(all_train_df, feature_columns, target)
+    test_generator = create_dataset(all_test_df, feature_columns, target)
+
+    return train_generator, test_generator
 
 
 if __name__ == "__main__":
@@ -113,7 +119,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", type=str, default='data/scaled_data.csv')
     parser.add_argument("--model_path", type=str, default='models/bitcoin_prediction_model.keras')
-    parser.add_argument("--scaler_path", type=str, default='models/scaler.pkl')
+    # parser.add_argument("--scaler_path", type=str, default='models/scaler.pkl')
 
     args = parser.parse_args()
 
@@ -122,38 +128,29 @@ if __name__ == "__main__":
     df.sort_index(inplace=True)
     df.fillna(method='ffill', inplace=True)
 
-    # Load the scaler if it exists
-    if args.scaler_path and os.path.exists(args.scaler_path):
-        scaler = joblib.load(args.scaler_path)
-        df[df.columns] = scaler.transform(df)
+    feature_columns = df.select_dtypes(include=['number']).columns.tolist()
+    folds = 50
+    input_shape = (50, len(feature_columns))
+    model = create_or_load_model(input_shape, args.model_path)
 
-    start_date = datetime.datetime(2014, 9, 17)
-    end_date = datetime.datetime(2023, 11, 27)
+    start_date = pd.to_datetime("2015-01-01")
+    end_date = pd.to_datetime(df.index.max())
 
-    performance_metrics = []
+    # Generate data splits
+    feature_columns = df.select_dtypes(include=['number']).columns.tolist()
+    input_shape = (50, len(feature_columns))
+    model = create_or_load_model(input_shape, args.model_path)
 
-    for train_df, test_df in generate_data_splits(df, start_date, end_date):
-        feature_columns = train_df.select_dtypes(include=['number']).columns.tolist()
-        target_column = 'Close'
+    # Genera un unico dataset di training e test
+    train_generator, test_generator = generate_combined_dataset(df, start_date, end_date, 10, folds, feature_columns,
+                                                                'Close')
 
-        if len(train_df) < 50:
-            logging.info("Skipping fold due to insufficient data.")
-            continue
+    # Addestra il modello
+    logging.info("Starting model training...")
+    model, history = train_model(model, train_generator, test_generator, args.model_path)
 
-        input_shape = (50, len(feature_columns))
-        train_generator = create_dataset(train_df, feature_columns, target_column)
-        test_generator = create_dataset(test_df, feature_columns, target_column)
+    # Valuta il modello
+    evaluate(model, test_generator)
 
-        model = build_model(input_shape)
-
-        callbacks = [EarlyStopping(monitor='val_loss', patience=3)]
-        history = model.fit(train_generator, epochs=10, validation_data=test_generator, callbacks=callbacks)
-
-        loss, metric = model.evaluate(test_generator)
-        logging.info(f'Test Loss: {loss}, Test Metric: {metric}')
-        performance_metrics.append((loss, metric))
-
-        del model
-        gc.collect()
-
-    logging.info("Cross-validation complete. Performance metrics: {}".format(performance_metrics))
+    logging.info("Training completed successfully.")
+    model.save(args.model_path)
