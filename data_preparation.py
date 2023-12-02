@@ -96,7 +96,7 @@ def main():
     df = calculate_technical_indicators(df)
     columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
     df, scaler = normalize_features(df, columns_to_scale)
-    save_scaler(scaler)  # Save the scaler separately
+    save_scaler(scaler)
     df.to_csv('data/processed_data.csv', index=True)
     visualize_data(df)
 
