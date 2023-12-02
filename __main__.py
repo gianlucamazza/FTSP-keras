@@ -28,7 +28,7 @@ if __name__ == "__main__":
         "feature_engineering.py",
         "model.py",
         "train.py",
-        "predict.py"
+        # "predict.py"
     ]
 
     for script in scripts:

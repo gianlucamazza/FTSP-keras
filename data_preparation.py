@@ -120,5 +120,6 @@ def main():
     df.to_csv('data/processed_data.csv', index=True)
     visualize_data(df)
 
+
 if __name__ == '__main__':
     main()
