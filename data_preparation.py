@@ -74,10 +74,6 @@ def calculate_technical_indicators(df):
 def visualize_data(df):
     plt.figure(figsize=(15, 10))
     plt.plot(df['Close'], label='Close')
-    plt.plot(df['MA50'], label='MA50')
-    plt.plot(df['MA200'], label='MA200')
-    plt.plot(df['Upper'], label='Upper')
-    plt.plot(df['Lower'], label='Lower')
     plt.title('Bitcoin price history')
     plt.ylabel('Price (USD)')
     plt.xlabel('Date')
