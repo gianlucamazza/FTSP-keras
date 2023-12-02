@@ -59,9 +59,6 @@ def prepare_data(data, input_timesteps, num_features):
 def main():
     df = load_dataset('data/scaled_data.csv')
 
-    # Define the window sizes and overlap
-    train_window, val_window, overlap, timesteps = 60, 30, 30, 50
-
     # Split the data
     train_window, overlap, timesteps, validation_split = 60, 30, 50, 0.2
     train_data, val_data = split_data(df, train_window, overlap, timesteps, validation_split)
@@ -87,14 +84,18 @@ def main():
     print(f'Mean Squared Error: {mse}')
 
     # Plot predictions
-    plt.plot(y_val, label='True Values')
-    plt.plot(predictions, label='Predictions')
-    plt.title('Model Predictions vs True Values')
+    plt.figure(figsize=(12, 6))
+    plt.plot(y_val, color='blue', label='True Values')
+    plt.plot(predictions, color='red', label='Predictions')
+    plt.title('Bitcoin Price Prediction Model Performance')
+    plt.xlabel('Time Steps')
+    plt.ylabel('Bitcoin Price')
     plt.legend()
+    plt.grid(True)
     plt.show()
 
     # Save the model
-    model.save('models/trained_model.h5')
+    model.save('models/bitcoin_prediction_model.keras')
 
 
 if __name__ == '__main__':

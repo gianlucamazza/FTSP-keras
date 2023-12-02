@@ -114,7 +114,7 @@ def main():
     file_path = 'data/BTC-USD.csv'
     df = load_data(file_path)
     df = calculate_technical_indicators(df)
-    columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
     df, scaler = normalize_features(df, columns_to_scale)
     save_scaler(scaler)  # Save the scaler separately
     df.to_csv('data/processed_data.csv', index=True)

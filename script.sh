@@ -1,8 +1,7 @@
 #!/bin/bash
 
-text="Check the whole project and help me to create a perfect train.py.\n"
-text+="- the dataset should be split into windows of 60 days for training and 30 days for validation, overlapping by 30 days.\n"
-text+="show me the full code.\n"
+text="Verify the full code and help me to understand better the error.\n"
+
 
 
 separator="\n\`\`\`\n"
@@ -20,5 +19,13 @@ separator="\n\`\`\`\n"
     echo -e "model.py:"
     echo -e "$separator"
     cat model.py
+    echo -e "$separator"
+    echo -e "train.py:"
+    echo -e "$separator"
+    cat train.py
+    echo -e "$separator"
+    echo -e "predict.py:"
+    echo -e "$separator"
+    cat predict.py
     echo -e "$separator"
 ) | xclip -selection clipboard
