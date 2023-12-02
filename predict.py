@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import tensorflow as tf
+import joblib
 import matplotlib.pyplot as plt
 
 
@@ -26,34 +28,46 @@ def prepare_data_for_prediction(df, input_timesteps, num_features):
     return X
 
 
-def predict_and_plot(model_path, data_path, input_timesteps, num_features):
-    model = tf.keras.models.load_model(model_path)
-
+def predict(model_path, data_path, scaler_path, input_timesteps, num_features):
     df = load_dataset(data_path)
     X = prepare_data_for_prediction(df, input_timesteps, num_features)
+    model = tf.keras.models.load_model(model_path)
+    scaler = joblib.load(scaler_path)
 
     prediction = model.predict(X)
-    print(prediction)
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(df.index[-input_timesteps:], df['Close'].iloc[-input_timesteps:], label='Historical Data')
-    predicted_date = df.index[-1] + pd.Timedelta(days=1)
-    plt.plot([predicted_date], prediction[0], 'ro', label='Predicted Price')
-    plt.title('Bitcoin Price Prediction')
+    dummy_input = np.zeros((1, num_features))
+    dummy_input[0, 3] = prediction[0, 0]  # Assuming index 3 is for 'Close'
+    predicted_price = scaler.inverse_transform(dummy_input)[0, 3]
+
+    dates = df.index[-input_timesteps:]
+
+    dummy_array = np.zeros((input_timesteps, num_features))
+    dummy_array[:, 3] = df['Close'].iloc[-input_timesteps:].values  # Assuming index 3 is for 'Close'
+
+    historical_close_inversed = scaler.inverse_transform(dummy_array)[:, 3]
+
+    return dates, historical_close_inversed, predicted_price
+
+
+def plot_prediction(dates, historical_close_inversed, prediction):
+    plt.figure(figsize=(12, 6))
+    plt.plot(dates, historical_close_inversed, label='Historical Close')
+    plt.plot([dates[-1], dates[-1] + pd.Timedelta(days=1)], [historical_close_inversed[-1], prediction], 'ro-', label='Predicted Close')
+    plt.legend()
+
     plt.xlabel('Date')
     plt.ylabel('Price')
-    plt.legend()
-    plt.grid(True)
+    plt.title('Bitcoin Price Prediction')
     plt.show()
-
-    return prediction
 
 
 if __name__ == '__main__':
     model_path = 'models/bitcoin_prediction_model.keras'
     data_path = 'data/scaled_data.csv'
+    scaler_path = 'models/scaler.pkl'
     input_timesteps = 50
     num_features = 15
-
-    prediction = predict_and_plot(model_path, data_path, input_timesteps, num_features)
-    print("Predicted Value:", prediction)
+    dates, historical_close_inversed, prediction = predict(model_path, data_path, scaler_path, input_timesteps, num_features)
+    plot_prediction(dates, historical_close_inversed, prediction)
+    print(f"Predicted price: {prediction:.2f}")

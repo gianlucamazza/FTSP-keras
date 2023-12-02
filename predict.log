@@ -1,0 +1,10 @@
+2023-12-02 16:22:29,074:INFO:Model loaded successfully from models/bitcoin_prediction_model.keras
+2023-12-02 16:22:29,091:INFO:Dataset loaded successfully from data/scaled_data.csv
+2023-12-02 16:22:29,091:ERROR:Error scaling features: Scaler file scaler.pkl not found.
+2023-12-02 16:22:29,091:ERROR:Error during prediction or plotting: Scaler file scaler.pkl not found.
+2023-12-02 16:22:29,092:ERROR:Execution failed: Scaler file scaler.pkl not found.
+2023-12-02 16:23:13,008:INFO:Model loaded successfully from models/bitcoin_prediction_model.keras
+2023-12-02 16:23:13,025:INFO:Dataset loaded successfully from data/scaled_data.csv
+2023-12-02 16:23:13,026:ERROR:Error scaling features: 'numpy.ndarray' object has no attribute 'transform'
+2023-12-02 16:23:13,026:ERROR:Error during prediction or plotting: 'numpy.ndarray' object has no attribute 'transform'
+2023-12-02 16:23:13,027:ERROR:Execution failed: 'numpy.ndarray' object has no attribute 'transform'
