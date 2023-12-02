@@ -4,22 +4,10 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 import os
+import yfinance as yf
 
 
 def load_data(file_path):
-    """
-    Loads Bitcoin price data from a CSV file.
-
-    Parameters:
-    file_path (str): Path to the CSV file containing the data.
-
-    Returns:
-    pandas.DataFrame: Dataframe containing the data.
-
-    Raises:
-    FileNotFoundError: If the file does not exist.
-    pd.errors.EmptyDataError: If the file is empty.
-    """
     try:
         df = pd.read_csv(file_path)
 
@@ -37,17 +25,23 @@ def load_data(file_path):
         raise pd.errors.EmptyDataError(f"File '{file_path}' is empty.")
 
 
+def merge_data(df1, df2):
+    df = pd.concat([df1, df2], axis=0)
+    df = df[~df.index.duplicated(keep='last')]
+    return df
+
+
+def get_new_financial_data(ticker, start_date, end_date):
+    df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+    df.reset_index(inplace=True)
+    df.rename(columns={'Adj Close': 'Adj_Close'}, inplace=True)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    df = df[['Open', 'High', 'Low', 'Close', 'Adj_Close', 'Volume']]
+    return df
+
+
 def normalize_features(df, columns_to_scale):
-    """
-    Normalizes the values of the given columns using the MinMaxScaler.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-    columns_to_scale (list): List of column names to scale.
-
-    Returns:
-    pandas.DataFrame: Dataframe with normalized values.
-    """
     missing_columns = [col for col in columns_to_scale if col not in df.columns]
     if missing_columns:
         raise ValueError(f"Columns not found in DataFrame: {missing_columns}")
@@ -63,19 +57,6 @@ def save_scaler(scaler, path='models/scaler.pkl'):
 
 
 def calculate_technical_indicators(df):
-    """
-    Calculates technical indicators for the given price data.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-
-    Returns:
-    pandas.DataFrame: Dataframe with technical indicators.
-
-    Raises:
-    ValueError: If the DataFrame does not contain a 'Date' column.
-    ValueError: If the DataFrame does not contain the required columns.
-    """
     required_columns = ['Close']
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
@@ -91,12 +72,6 @@ def calculate_technical_indicators(df):
 
 
 def visualize_data(df):
-    """
-    Visualizes the given data.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-    """
     plt.figure(figsize=(15, 10))
     plt.plot(df['Close'], label='Close')
     plt.plot(df['MA50'], label='MA50')
@@ -113,6 +88,15 @@ def visualize_data(df):
 def main():
     file_path = 'data/BTC-USD.csv'
     df = load_data(file_path)
+    last_date = df.index[-1]
+
+    if last_date.date() < pd.Timestamp.today().date():
+        start_date = last_date + pd.Timedelta(days=1)
+        end_date = pd.Timestamp.today()
+        new_data = get_new_financial_data('BTC-USD', start_date, end_date)
+        df = merge_data(df, new_data)
+        df.to_csv(file_path, index=True)
+
     df = calculate_technical_indicators(df)
     columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
     df, scaler = normalize_features(df, columns_to_scale)
