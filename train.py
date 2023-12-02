@@ -64,7 +64,7 @@ def main():
     train_data, val_data = split_data(df, train_window, overlap, timesteps, validation_split)
 
     # Prepare the data for the LSTM model
-    num_features = df.shape[1] - 1
+    num_features = 15
     X_train, y_train = prepare_data(train_data, timesteps, num_features)
     X_val, y_val = prepare_data(val_data, timesteps, num_features)
 
