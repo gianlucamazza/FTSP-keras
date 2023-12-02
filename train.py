@@ -10,8 +10,8 @@ from model import build_model
 def load_dataset(file_path):
     df = pd.read_csv(file_path, index_col='Date')
     print(f"Loaded dataset shape: {df.shape}")
-    df.dropna(inplace=True)
-    print(f"Cleaned dataset shape: {df.shape}")
+    df.fillna(method='ffill', inplace=True)
+    df.fillna(method='bfill', inplace=True)
     return df
 
 
@@ -51,9 +51,12 @@ def prepare_data(data, input_timesteps, num_features):
             for i in range(len(window) - input_timesteps):
                 X.append(window[i:i + input_timesteps, :num_features])
                 y.append(window[i + input_timesteps - 1, -1])
+        else:
+            print(f"Finestra ignorata per mancanza di dati: {len(window)} timesteps")
     X, y = np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
     print(f"Prepared data - X shape: {X.shape}, y shape: {y.shape}")
     return X, y
+
 
 
 def main():
