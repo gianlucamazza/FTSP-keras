@@ -10,6 +10,8 @@ from model import build_model
 def load_dataset(file_path):
     df = pd.read_csv(file_path, index_col='Date')
     print(f"Loaded dataset shape: {df.shape}")
+    df.dropna(inplace=True)
+    print(f"Cleaned dataset shape: {df.shape}")
     return df
 
 
