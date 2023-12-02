@@ -9,43 +9,48 @@ from model import build_model
 
 def load_dataset(file_path):
     df = pd.read_csv(file_path, index_col='Date')
-    print(f"Loaded dataset shape: {df.shape}")  # Debugging print
+    print(f"Loaded dataset shape: {df.shape}")
     return df
 
 
-def split_data(df, train_window, val_window, overlap, input_timesteps):
+def split_data(df, train_window, overlap, input_timesteps, validation_split):
+    split_idx = int(len(df) * (1 - validation_split))
+    df_train = df.iloc[:split_idx]
+    df_val = df.iloc[split_idx:]
+
     train_data = []
     val_data = []
 
     start = 0
-    while start + train_window <= len(df):
+    while start + train_window <= len(df_train):
         end_train = start + train_window
-        end_val = min(end_train + val_window, len(df))
 
-        # Append training data
         if end_train - start >= input_timesteps:
-            train_data.append(df.iloc[start:end_train].values)
-
-        # Append validation data if there's enough data left
-        if len(df) - end_train >= input_timesteps:
-            val_data.append(df.iloc[end_train:end_val].values)
-            print(f"Validation window added: start={end_train}, end={end_val}, length={len(df.iloc[end_train:end_val].values)}")  # Debugging print
+            train_data.append(df_train.iloc[start:end_train].values)
 
         start += train_window - overlap
 
-    print(f"Split data - Train samples: {len(train_data)}, Validation samples: {len(val_data)}")
+    start = 0
+    while start + train_window <= len(df_val):
+        end_train = start + train_window
+
+        if end_train - start >= input_timesteps:
+            val_data.append(df_val.iloc[start:end_train].values)
+
+        start += train_window - overlap
+
     return np.array(train_data, dtype=object), np.array(val_data, dtype=object)
 
 
 def prepare_data(data, input_timesteps, num_features):
     X, y = [], []
     for window in data:
-        if len(window) >= input_timesteps:  # Ensure window length meets the minimum requirement
+        if len(window) >= input_timesteps:
             for i in range(len(window) - input_timesteps):
                 X.append(window[i:i + input_timesteps, :num_features])
                 y.append(window[i + input_timesteps - 1, -1])
-    X, y = np.array(X), np.array(y)
-    print(f"Prepared data - X shape: {X.shape}, y shape: {y.shape}")  # Debugging print
+    X, y = np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
+    print(f"Prepared data - X shape: {X.shape}, y shape: {y.shape}")
     return X, y
 
 
@@ -56,7 +61,8 @@ def main():
     train_window, val_window, overlap, timesteps = 60, 30, 30, 50
 
     # Split the data
-    train_data, val_data = split_data(df, train_window, val_window, overlap, timesteps)
+    train_window, overlap, timesteps, validation_split = 60, 30, 50, 0.2
+    train_data, val_data = split_data(df, train_window, overlap, timesteps, validation_split)
 
     # Prepare the data for the LSTM model
     num_features = df.shape[1] - 1
