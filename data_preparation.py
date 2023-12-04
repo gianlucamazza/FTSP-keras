@@ -1,21 +1,13 @@
 # data_preparation.py
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.dates as mdates
-import joblib
 import os
 import yfinance as yf
 
 columns_to_scale = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume',
                     'MA50', 'MA200', 'Returns', 'Volatility', 'MA20',
                     'Upper', 'Lower', 'RSI', 'MACD']
-
-
-def merge_data(df1, df2):
-    df = pd.concat([df1, df2], axis=0)
-    df = df[~df.index.duplicated(keep='last')]
-    return df
 
 
 def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
@@ -32,26 +24,6 @@ def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
         df.to_csv(file_path, index=True)
 
     return df
-
-
-def normalize_features(df, columns, normalize=True):
-    if not normalize:
-        return df, None
-
-    missing_columns = [col for col in columns if col not in df.columns]
-    if missing_columns:
-        raise ValueError(f"Columns not found in DataFrame: {missing_columns}")
-
-    scaler = MinMaxScaler()
-    df[columns] = scaler.fit_transform(df[columns])
-    return df, scaler
-
-
-def save_scaler(scaler, ticker, path=None):
-    if path is None:
-        path = f'scalers/scaler_{ticker}.pkl'
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    joblib.dump(scaler, path)
 
 
 def calculate_rsi(prices, n=14):
@@ -103,19 +75,30 @@ def plot_price_history(dates, prices, ticker):
     plt.show()
 
 
-def visualize_data(df, ticker, columns, scaler_path=None):
-    if scaler_path:
-        scaler = joblib.load(scaler_path)
-        close_index = columns.index('Close')
-        non_scaled_close = scaler.inverse_transform(df[columns])[:, close_index]
-        plot_price_history(df.index, non_scaled_close, ticker)
-    else:
-        plot_price_history(df.index, df['Close'], ticker)
+def visualize_data(df, ticker, columns):
+    dates = df.index.values
+    prices = df['Close'].values
+    plot_price_history(dates, prices, ticker)
+
+    for col in columns:
+        plt.figure(figsize=(15, 10))
+        plt.plot(dates, df[col].values)
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.gcf().autofmt_xdate()
+        plt.title(f'{ticker} {col}')
+        plt.ylabel(col)
+        plt.xlabel('Date')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 
 def main(ticker='BTC-USD', start_date=None, end_date=None):
+    # Download data
     get_financial_data(ticker, file_path=f'data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
 
+    # Load and preprocess data
     df = pd.read_csv(f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
     df = calculate_technical_indicators(df)
     df.bfill(inplace=True)
@@ -123,12 +106,9 @@ def main(ticker='BTC-USD', start_date=None, end_date=None):
     if df.isnull().any().any():
         raise ValueError("DataFrame still contains NaN values after preprocessing.")
 
-    df, scaler = normalize_features(df, columns_to_scale)
-    scaler_path = f'scalers/scaler_{ticker}.pkl'
-    save_scaler(scaler, ticker, path=scaler_path)
-
+    # Save processed data without scaling
     df.to_csv(f'data/processed_data_{ticker}.csv', index=True)
-    visualize_data(df, ticker, columns_to_scale, scaler_path)
+    plot_price_history(df.index, df['Close'], ticker)
 
 
 if __name__ == '__main__':

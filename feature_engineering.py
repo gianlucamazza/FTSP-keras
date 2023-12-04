@@ -18,11 +18,14 @@ def save_scaler(scaler, ticker, scaler_type='feature'):
 
 
 def process_and_save_features(df, ticker):
+    # Normalize all features except Close
     columns_to_normalize = df.select_dtypes(include=['number']).columns.tolist()
-
     df, feature_scaler = normalize_features(df, columns_to_normalize)
+
+    # Save scaler for all features
     save_scaler(feature_scaler, ticker, scaler_type='feature')
 
+    # Save scaled data
     output_file_path = f'data/scaled_data_{ticker}.csv'
     df.to_csv(output_file_path, index=True)
     return df

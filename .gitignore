@@ -1,7 +1,7 @@
-data/
-models/
-scalers/
-logs/
+data/*
+models/*
+scalers/*
+logs/*
 
 # .gitignore
 __pycache__/
