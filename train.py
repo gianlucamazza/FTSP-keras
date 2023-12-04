@@ -1,5 +1,4 @@
 # train.py
-import joblib
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error
@@ -7,7 +6,6 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from model import build_model
-from model import prepare_callbacks
 from data_preparation import columns_to_scale as columns
 from keras.models import load_model
 from sklearn.model_selection import TimeSeriesSplit
@@ -20,115 +18,62 @@ def load_dataset(file_path):
     return df
 
 
-def create_windowed_data(df, start_index, end_index, timesteps):
+def create_windowed_data(df, timesteps):
     X, y = [], []
-    for i in range(start_index + timesteps, end_index):
-        X.append(df.iloc[i - timesteps:i].values)
-        y.append(df.iloc[i, 0])
+    for i in range(timesteps, len(df)):
+        X.append(df[i - timesteps:i])
+        y.append(df[i, 0])
     return np.array(X), np.array(y)
 
 
-def evaluate_model(model, x_test, y_test, scaler):
+def calculate_rmse(model, x_test, y_test):
     y_pred = model.predict(x_test)
-
-    target_scaler = MinMaxScaler()
-    target_scaler.min_, target_scaler.scale_ = scaler.min_[0], scaler.scale_[0]
-    target_scaler.data_min_, target_scaler.data_max_ = scaler.data_min_[0], scaler.data_max_[0]
-    target_scaler.data_range_ = scaler.data_range_[0]
-
-    y_pred = target_scaler.inverse_transform(y_pred)
-    y_test = target_scaler.inverse_transform(y_test.reshape(-1, 1))
-
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    print(f"RMSE: {rmse:.2f}")
-    return y_pred, rmse
+    return np.sqrt(mean_squared_error(y_test, y_pred))
 
 
-def plot_results(y_test, y_pred):
+def train_model(x_train, y_train, x_val, y_val, model_path, parameters):
+    model = build_model((parameters['train_timesteps'], parameters['features']), neurons=100, dropout=0.3,
+                        additional_layers=2, bidirectional=True)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+    model_checkpoint = ModelCheckpoint(filepath=model_path, monitor='val_loss', save_best_only=True)
+    history = model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_val, y_val),
+                        callbacks=[early_stopping, model_checkpoint], verbose=2)
+    return model, history
+
+
+def plot_history(history):
     plt.figure(figsize=(12, 6))
-    plt.plot(y_test, label='Actual')
-    plt.plot(y_pred, label='Predicted')
+    plt.plot(history.history['loss'], label='Train')
+    plt.plot(history.history['val_loss'], label='Validation')
     plt.legend()
     plt.show()
 
 
-def main(ticker='BTC-USD', n_splits=5):
-
-    paths = {
-        'model': f'models/model_{ticker}.keras',
-        'data': f'data/scaled_data_{ticker}.csv',
-        'scaler': f'scalers/feature_scaler_{ticker}.pkl'
-    }
-
-    parameters = {
-        'train_timesteps': 60,
-        'test_timesteps': 30,
-        'features': len(columns),
-        'columns': columns
-    }
-
+def main(ticker='BTC-USD'):
+    paths = {'model': f'models/model_{ticker}.keras', 'data': f'data/scaled_data_{ticker}.csv'}
+    parameters = {'train_timesteps': 60, 'test_timesteps': 30, 'features': len(columns), 'columns': columns}
     df = load_dataset(paths['data'])
     df = df[parameters['columns']]
-    scaler = joblib.load(paths['scaler'])
-
-    df_scaled = pd.DataFrame(scaler.transform(df), columns=df.columns, index=df.index)
-
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
-    best_model_path = f"{paths['model']}_best.keras"
-    model_checkpoint = ModelCheckpoint(filepath=best_model_path, monitor='val_loss', save_best_only=True)
-
-    total_length = len(df_scaled)
-    X, y = create_windowed_data(df_scaled, 0, total_length, parameters['train_timesteps'])
-
-    y = y.reshape(-1, 1)  # Reshape y to match the shape of the output layer
-
+    scaler = MinMaxScaler()
+    df_scaled = scaler.fit_transform(df)
+    X, y = create_windowed_data(df_scaled, parameters['train_timesteps'])
+    y = y.reshape(-1, 1)
+    n_splits = (len(df_scaled) - parameters['train_timesteps']) // parameters['test_timesteps']
+    if n_splits < 1:
+        raise ValueError("Not enough data for even one split!")
     tscv = TimeSeriesSplit(n_splits=n_splits)
-    model = build_model((parameters['train_timesteps'], parameters['features']), neurons=100, dropout=0.3,
-                        additional_layers=2, bidirectional=True)
-
-    history_list = []
-
+    rmse_list = []
+    history = None
     for i, (train_index, test_index) in enumerate(tscv.split(X)):
-        print(f"Training on fold {i + 1}/{n_splits}...")
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-
-        # No need to fit the scaler again, just transform the data
-        X_train_scaled = X_train
-        X_test_scaled = X_test
-
-        history = model.fit(
-            X_train_scaled, y_train,
-            epochs=50,
-            batch_size=32,
-            validation_data=(X_test_scaled, y_test),
-            callbacks=[early_stopping, model_checkpoint, prepare_callbacks(ticker, epoch=10, val_loss='val_loss')],
-            verbose=2
-        )
-        history_list.append(history)
-
-        # Load the best model once after all folds have been trained
-    best_model = load_model(best_model_path)
-
-    # Evaluate the best model
-    rmse_list = []
-
-    # Use either a separate test set or the last fold as the test set for final evaluation
-    X_test_scaled = X[-1]  # Assuming the last fold is for testing
-    y_test_scaled = y[-1]
-
-    y_pred_scaled = best_model.predict(X_test_scaled)
-    y_pred = scaler.inverse_transform(y_pred_scaled)
-    y_test = scaler.inverse_transform(y_test_scaled.reshape(-1, 1))
-
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    print(f"RMSE: {rmse:.2f}")
-    rmse_list.append(rmse)
-
-    plot_results(y_test, y_pred)
-
-    average_rmse = np.mean(rmse_list)
-    print(f"Average RMSE: {average_rmse:.2f}")
+        model, history = train_model(X_train, y_train, X_test, y_test, paths['model'], parameters)
+        best_model = load_model(paths['model'])
+        rmse = calculate_rmse(best_model, X_test, y_test)
+        rmse_list.append(rmse)
+        print(f"RMSE for fold {i + 1}: {rmse:.2f}")
+    print(f"Average RMSE across all folds: {np.mean(rmse_list):.2f}")
+    plot_history(history)
 
 
 if __name__ == '__main__':
