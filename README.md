@@ -1,52 +1,59 @@
 # Bitcoin Price Prediction Using LSTM
 
 ## Project Overview
-This project leverages a Long Short-Term Memory (LSTM) model, a variant of recurrent neural networks, to predict Bitcoin prices. It encompasses data preparation, feature engineering, model building, training, and predictions based on historical price data.
+This project uses a Long Short-Term Memory (LSTM) model to predict Bitcoin prices. It covers data preparation, feature engineering, model building, training, and predictions using historical price data.
 
 ## Motivation
-The goal is to explore machine learning techniques applied to financial data, aiming to develop a model capable of accurately predicting Bitcoin prices. This model could potentially aid in making informed investment decisions.
+The aim is to apply machine learning techniques to financial data, developing a model that accurately predicts Bitcoin prices, potentially aiding in investment decisions.
 
 ## Structure
-The repository is organized into scripts for each stage of the machine learning pipeline:
+The repository includes scripts for each stage of the machine learning pipeline and a main script to run the entire process:
 
 - `data_preparation.py`: Processes raw Bitcoin price data.
-- `feature_engineering.py`: Enhances the data with technical indicators and normalizes it.
-- `model.py`: Outlines the LSTM neural network architecture.
-- `train.py`: Focuses on training and evaluating the model with historical data.
-- `predict.py`: Employs the trained model for future price predictions.
+- `feature_engineering.py`: Enhances data with technical indicators and normalizes it.
+- `model.py`: Defines the LSTM neural network architecture.
+- `train.py`: Trains and evaluates the model with historical data.
+- `predict.py`: Uses the trained model for future price predictions.
+- `main.py`: Automates the running of scripts for training and prediction.
 
 ## Data
-The data folder contains the historical Bitcoin price data:
-- `BTC-USD.csv`: Original Bitcoin price dataset.
-- `processed_data.csv`: Data augmented with technical indicators.
-- `scaled_data.csv`: Data normalized for model training.
+Data is downloaded from Yahoo Finance using `yfinance`. The raw data is stored in `data/raw_data.csv`.
 
 Processed data files:
 - `processed_data.csv`: Data with added technical indicators.
-- `scaled_data.csv`: Normalized data ready for model training.
+- `scaled_data.csv`: Normalized data for model training.
 
 ## Usage
-Each script is designed to be run sequentially:
+Run the entire process with `main.py` or individual scripts:
 
-1. **Data Preparation**:
-   ```bash
-   python data_preparation.py
-    ```
-2. **Feature Engineering**:
-   ```bash
-   python feature_engineering.py
-     ```
-3. **Build Model**:
-   ```bash
-   python model.py
-     ```
-4. **Predictions**:
-   ```bash
-   python predict.py
-     ```
+- **Using main.py** (automated process):
+```bash
+python main.py --train   # For training
+python main.py --predict # For predictions
+```
+
+- **Using individual scripts**:
+```bash
+python data_preparation.py
+python feature_engineering.py
+python train.py
+python predict.py
+```
+
+### Optional Arguments
+**Run individual scripts with different ticker symbols**:
+    
+```bash
+python data_preparation.py --ticker ETH-USD
+python feature_engineering.py --ticker ETH-USD
+python train.py --ticker ETH-USD
+python predict.py --ticker ETH-USD
+```
+
+## Logging
+The project uses Python's logging module to output logs to both the terminal and log files, aiding in monitoring and debugging.
 
 ## Requirements
-The project requires the following libraries:
 ```
 pandas~=2.1.3
 numpy~=1.26.2
@@ -58,15 +65,13 @@ joblib~=1.3.2
 yfinance~=0.2.32
 ```
 
-Install dependencies using:
+## Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
+## Contributing
+Contributions to improve the model or add new features are welcome. Please use the standard pull request process.
 
-# Contributing
-Contributions to improve the model or suggestions for new features are welcome. Please follow the standard pull request process to contribute.
-
-# License
-This project is open-sourced under the MIT license.
+## License
 [MIT](https://choosealicense.com/licenses/mit/)
