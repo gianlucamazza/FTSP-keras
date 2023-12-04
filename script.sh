@@ -1,6 +1,6 @@
 #!/bin/bash
 
-text="Verify and optimize the following project. Show me only the most important mistakes or optimizations of the code.\n"
+text="Verify the full code and help me to understand better the error.\n"
 
 
 

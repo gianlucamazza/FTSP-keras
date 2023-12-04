@@ -1,82 +1,52 @@
 # data_preparation.py
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-import joblib
+import matplotlib.dates as mdates
 import os
-import argparse
+import yfinance as yf
+
+columns_to_scale = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume',
+                    'MA50', 'MA200', 'Returns', 'Volatility', 'MA20',
+                    'Upper', 'Lower', 'RSI', 'MACD']
 
 
-def load_data(file_path):
-    """
-    Loads Bitcoin price data from a CSV file.
+def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
+    df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+    df.reset_index(inplace=True)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    df = df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
+    df.sort_index(inplace=True)
+    df.ffill(inplace=True)
+    df.bfill(inplace=True)
 
-    Parameters:
-    file_path (str): Path to the CSV file containing the data.
+    if file_path:
+        df.to_csv(file_path, index=True)
 
-    Returns:
-    pandas.DataFrame: Dataframe containing the data.
-
-    Raises:
-    FileNotFoundError: If the file does not exist.
-    pd.errors.EmptyDataError: If the file is empty.
-    """
-    try:
-        df = pd.read_csv(file_path)
-
-        if 'Date' not in df.columns:
-            raise ValueError("DataFrame must contain a 'Date' column.")
-        df['Date'] = pd.to_datetime(df['Date'])
-        df.set_index('Date', inplace=True)
-
-        if df.isnull().any().any():
-            df.interpolate(method='time', inplace=True)
-        return df
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File '{file_path}' not found.")
-    except pd.errors.EmptyDataError:
-        raise pd.errors.EmptyDataError(f"File '{file_path}' is empty.")
+    return df
 
 
-def normalize_features(df, columns_to_scale):
-    """
-    Normalizes the values of the given columns using the MinMaxScaler.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-    columns_to_scale (list): List of column names to scale.
-
-    Returns:
-    pandas.DataFrame: Dataframe with normalized values.
-    """
-    missing_columns = [col for col in columns_to_scale if col not in df.columns]
-    if missing_columns:
-        raise ValueError(f"Columns not found in DataFrame: {missing_columns}")
-
-    scaler = MinMaxScaler()
-    df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
-    return df, scaler
+def calculate_rsi(prices, n=14):
+    deltas = prices.diff()
+    loss = deltas.where(deltas < 0, 0)
+    gain = deltas.where(deltas > 0, 0)
+    avg_gain = gain.rolling(window=n, min_periods=1).mean()
+    avg_loss = -loss.rolling(window=n, min_periods=1).mean()
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
+    return 100 - (100 / (1 + rs))
 
 
-def save_scaler(scaler, path='models/scaler.pkl'):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    joblib.dump(scaler, path)
+def calculate_macd(prices, n_fast=12, n_slow=26):
+    ema_fast = prices.ewm(span=n_fast, min_periods=n_slow).mean()
+    ema_slow = prices.ewm(span=n_slow, min_periods=n_slow).mean()
+    return ema_fast - ema_slow
 
 
 def calculate_technical_indicators(df):
-    """
-    Calculates technical indicators for the given price data.
+    required_columns = ['Close']
+    if not all(col in df.columns for col in required_columns):
+        raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
 
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-
-    Returns:
-    pandas.DataFrame: Dataframe with technical indicators.
-
-    Raises:
-    ValueError: If the DataFrame does not contain a 'Date' column.
-    ValueError: If the DataFrame does not contain the required columns.
-    """
     df['MA50'] = df['Close'].rolling(50).mean()
     df['MA200'] = df['Close'].rolling(200).mean()
     df['Returns'] = df['Close'].pct_change()
@@ -84,44 +54,62 @@ def calculate_technical_indicators(df):
     df['MA20'] = df['Close'].rolling(20).mean()
     df['Upper'] = df['MA20'] + 2 * df['Volatility']
     df['Lower'] = df['MA20'] - 2 * df['Volatility']
+    df['RSI'] = calculate_rsi(df['Close'])
+    df['MACD'] = calculate_macd(df['Close'])
+
     return df
 
 
-def visualize_data(df):
-    """
-    Visualizes the given data.
-
-    Parameters:
-    df (pandas.DataFrame): Dataframe containing Bitcoin price data.
-    """
+def plot_price_history(dates, prices, ticker):
     plt.figure(figsize=(15, 10))
-    plt.plot(df['Close'], label='Close')
-    plt.plot(df['MA50'], label='MA50')
-    plt.plot(df['MA200'], label='MA200')
-    plt.plot(df['Upper'], label='Upper')
-    plt.plot(df['Lower'], label='Lower')
-    plt.title('Bitcoin price history')
+    plt.plot(dates, prices, label='Close Price')
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+    plt.gcf().autofmt_xdate()
+    plt.title(f'{ticker} Price History')
     plt.ylabel('Price (USD)')
     plt.xlabel('Date')
-    plt.legend(loc='upper left')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()
 
 
-def main(file_path):
-    df = load_data(file_path)
+def visualize_data(df, ticker, columns):
+    dates = df.index.values
+    prices = df['Close'].values
+    plot_price_history(dates, prices, ticker)
+
+    for col in columns:
+        plt.figure(figsize=(15, 10))
+        plt.plot(dates, df[col].values)
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.gcf().autofmt_xdate()
+        plt.title(f'{ticker} {col}')
+        plt.ylabel(col)
+        plt.xlabel('Date')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+
+def main(ticker='BTC-USD', start_date=None, end_date=None):
+    # Download data
+    get_financial_data(ticker, file_path=f'data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
+
+    # Load and preprocess data
+    df = pd.read_csv(f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
     df = calculate_technical_indicators(df)
-    # columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
-    # columns_to_scale = ['Close', 'MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
-    # df, scaler = normalize_features(df, columns_to_scale)
-    # save_scaler(scaler)  # Save the scaler separately
-    df.to_csv('data/processed_data.csv', index=True)
-    visualize_data(df)
+    df.bfill(inplace=True)
+
+    if df.isnull().any().any():
+        raise ValueError("DataFrame still contains NaN values after preprocessing.")
+
+    # Save processed data without scaling
+    df.to_csv(f'data/processed_data_{ticker}.csv', index=True)
+    plot_price_history(df.index, df['Close'], ticker)
 
 
 if __name__ == '__main__':
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--file_path", type=str, default='data/BTC-USD.csv')
-    args = parser.parse_args()
-
-    main(args.file_path)
+    main(ticker='BTC-USD', start_date='2015-01-01', end_date=None)

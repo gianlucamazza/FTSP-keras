@@ -1,45 +1,54 @@
+import argparse
+import os
 import subprocess
+from logger import setup_logger
 
-PROCESSED_DATA_PATH = "data/processed_data.csv"
-# SCALED_DATA_PATH = "data/scaled_data.csv"
-MODEL_PATH = "models/bitcoin_prediction_model.keras"
-# SCALER_PATH = "models/scaler.pkl"
-BTC_CSV_PATH = "data/BTC-USD.csv"
+logger = setup_logger('main_logger', 'logs', 'main.log')
+
+tickers = ["BTC-USD", "ETH-USD"]
 
 
-def clean_data():
+def clean_data(_ticker="BTC-USD"):
+    files_to_remove = [
+        f"data/processed_data_{_ticker}.csv",
+        f"data/scaled_data_{_ticker}.csv",
+        f"scalers/scaler_{_ticker}.pkl",
+        f"scalers/close_scaler_{_ticker}.pkl"
+    ]
+
+    for file in files_to_remove:
+        try:
+            if os.path.exists(file):
+                os.remove(file)
+                logger.info(f"Removed {file}")
+        except Exception as e:
+            logger.error(f"Error removing {file}: {e}")
+
+
+def run_script(script_name, _ticker):
     try:
-        # Remove the CSV files
-        subprocess.run(["rm", PROCESSED_DATA_PATH], check=True)
-        # subprocess.run(["rm", SCALED_DATA_PATH], check=True)
-        # Remove all the files in the models directory
-        print("Data cleaned successfully.")
-    except subprocess.CalledProcessError:
-        print("An error occurred while cleaning the data.")
+        subprocess.run(["python", script_name, _ticker], check=True)
+        logger.info(f"Script {script_name} executed successfully for {_ticker}.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error executing {script_name} for {_ticker}: {e}")
 
 
-def run_script(script_name, args=None):
-    command = ["python", script_name]
-    if args:
-        command += args
-    try:
-        subprocess.run(command, check=True)
-        print(f"Script {script_name} executed successfully.")
-    except subprocess.CalledProcessError:
-        print(f"An error occurred while executing {script_name}.")
+def main(_args):
+    scripts = []
+    if _args.train:
+        scripts += ["data_preparation.py", "feature_engineering.py", "model.py", "train.py"]
+    if _args.predict:
+        scripts += ["predict.py"]
+
+    for ticker in tickers:
+        clean_data(ticker)
+        for script in scripts:
+            run_script(script, ticker)
 
 
 if __name__ == "__main__":
-    # Clean the data
-    clean_data()
-
-    scripts = [
-        ("data_preparation.py", ["--file_path", BTC_CSV_PATH]),
-        ("feature_engineering.py", ["--data", PROCESSED_DATA_PATH]),
-        ("model.py", ["--input_shape", "50", "15"]),
-        ("train.py", [ "--model_path", MODEL_PATH]),
-        ("predict.py", ["--model", MODEL_PATH])
-    ]
-
-    for script, args in scripts:
-        run_script(script, args)
+    parser = argparse.ArgumentParser(description="Run training and prediction scripts.")
+    parser.add_argument("--train", action="store_true", help="Run the training scripts.")
+    parser.add_argument("--predict", action="store_true", help="Run the prediction script.")
+    args = parser.parse_args()
+    main(args)

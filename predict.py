@@ -1,85 +1,111 @@
-# predict.py
-import argparse
-
 import pandas as pd
-from keras.models import load_model
-import numpy as np
+import joblib
 import matplotlib.pyplot as plt
-import os
+import numpy as np
+from data_preparation import columns_to_scale as columns
+from keras.models import load_model
+from logger import setup_logger
+
+logger = setup_logger('predict_logger', 'logs', 'predict.log')
 
 
-def load_data(file_path='data/scaled_data.csv'):
-    if not os.path.exists(file_path):
-        raise FileNotFoundError("File not found.")
-    df = pd.read_csv(file_path)
-    if df.empty:
-        raise ValueError("Dataframe is empty.")
-    df.dropna(inplace=True)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
-    return df
+def load_dataset(file_path):
+    try:
+        df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
+        df.ffill(inplace=True)
+        df.bfill(inplace=True)
+        logger.info(f"Dataset loaded successfully from {file_path}")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading dataset from {file_path}: {e}")
+        raise
 
 
-def load_model(model_path='models/bitcoin_prediction_model.keras'):
-    if not os.path.exists(model_path):
-        raise FileNotFoundError("Model file not found.")
-    return
+def select_features(df, feature_columns):
+    return df[feature_columns]
 
 
-def generate_predictions(df, model, feature_columns, time_steps, future_steps):
-    if len(df) < time_steps:
-        raise ValueError(f"Not enough data to generate input sequence. Required: {time_steps}, available: {len(df)}")
+def reshape_data(data, steps, features):
+    return data[-steps:].reshape(1, steps, features)
 
-    future_predictions = {}
-    close_index = feature_columns.index('Close')
-    input_sequence_df = df[feature_columns].tail(time_steps)
 
-    for step in range(1, future_steps + 1):
-        input_sequence = input_sequence_df.values.reshape(1, time_steps, -1)
-        prediction = model.predict(input_sequence)[0][0]
+def predict_price(model, data, scaler):
+    prediction = model.predict(data)
+    return prediction[0, 0]
 
-        future_date = df.index[-1] + pd.DateOffset(days=step)
-        future_predictions[future_date] = prediction
 
-        next_row = pd.DataFrame(np.zeros((1, len(feature_columns))), columns=feature_columns)
-        next_row.iloc[0, close_index] = prediction
-        input_sequence_df = pd.concat([input_sequence_df.iloc[1:], next_row])
+def predict_next_days(model, initial_data, close_scaler, days=30, steps=60):
+    future_predictions = []
+    input_data = initial_data[-steps:].copy()
+
+    for _ in range(days):
+        model_input = reshape_data(input_data, steps, len(columns))
+        predicted_price = predict_price(model, model_input, close_scaler)
+        future_predictions.append(predicted_price)
+
+        new_row = np.zeros_like(input_data[0])
+        new_row[-1] = predicted_price
+        input_data = np.vstack((input_data[1:], [new_row]))
 
     return future_predictions
 
 
-def plot_predictions(df, future_predictions):
+def plot_future_predictions(dates, historical_prices, future_dates, future_predictions):
     plt.figure(figsize=(12, 6))
-    plt.plot(df.index[-365:], df['Close'].tail(365), label='Actual') # Plot the last year of actual data
-    prediction_dates = list(future_predictions.keys())
-    prediction_values = list(future_predictions.values())
-    plt.plot(prediction_dates, prediction_values, label='Predicted')
-    plt.title('Bitcoin Price Prediction')
+    plt.plot(dates, historical_prices, label='Historical Close')
+    plt.plot(future_dates, future_predictions, 'ro-', label='Predicted Close')
     plt.legend()
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.title('Future Price Predictions')
     plt.show()
 
 
-def main(data='data/scaled_data.csv', model='models/bitcoin_prediction_model.keras', scaler='models/scaler.pkl'):
-    df = load_data(data)
-    model = load_model(model)
+def main(ticker='BTC-USD'):
+    paths = {
+        'best_model_path': f'models/model_{ticker}.keras',
+        'data': f'data/processed_data_{ticker}.csv',
+        'scaler': f'scalers/feature_scaler_{ticker}.pkl',
+    }
 
-    feature_columns = [
-        'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'MA50', 'MA200',
-        'Returns', 'Volatility', 'MA20', 'Upper', 'Lower', 'RSI', 'MACD'
-    ]
+    parameters = {
+        'steps': 60,
+        'features': len(columns),
+        'columns': columns
+    }
 
-    time_steps = 50
-    future_steps = 30
-    future_predictions = generate_predictions(df, model, feature_columns, time_steps, future_steps)
-    plot_predictions(df, future_predictions)
+    dataset = load_dataset(paths['data'])
+    feature_data = select_features(dataset, parameters['columns'])
+
+    model_input = feature_data.iloc[-parameters['steps']:].to_numpy()
+    reshaped_input = reshape_data(model_input, parameters['steps'], parameters['features'])
+
+    model = load_model(paths['best_model_path'])
+    close_scaler = joblib.load(paths['close_scaler'])
+
+    historical_closing_prices = dataset['Close'][-parameters['steps']:]
+
+    historical_dates = dataset.index[-parameters['steps']:]
+    future_dates = pd.date_range(start=historical_dates[-1] + pd.Timedelta(days=1), periods=30)
+
+    try:
+        predicted_prices = predict_next_days(model, reshaped_input, close_scaler, days=30, steps=parameters['steps'])
+        logger.info("Predictions calculated successfully.")
+        for date, price in zip(future_dates, predicted_prices):
+            logger.info(f"{date}: {price}")
+    except Exception as e:
+        logger.error(f"Error predicting next 30 days: {e}")
+        raise
+
+    predicted_prices = close_scaler.inverse_transform(
+        np.array(predicted_prices).reshape(-1, 1)
+    ).flatten()
+
+    plot_future_predictions(historical_dates, historical_closing_prices, future_dates, predicted_prices)
+
+    plt.savefig(f'predictions/{ticker}_predictions.png')
+    logger.info("Prediction plot saved successfully.")
 
 
-if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, default='data/scaled_data.csv')
-    parser.add_argument("--model", type=str, default='models/bitcoin_prediction_model.keras')
-    args = parser.parse_args()
-
-    main(args.data, args.model)
-
+if __name__ == '__main__':
+    main(ticker='BTC-USD')

@@ -5,5 +5,12 @@ __pycache__/
 venv/
 .env
 
+# IDE
 .idea
 .vscode
+
+# Data
+/data/
+/logs/
+/models/
+/predictions/

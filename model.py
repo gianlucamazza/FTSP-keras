@@ -1,49 +1,72 @@
 # model.py
-import argparse
-
+import datetime
+import os
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
+from keras.layers import LSTM, Dense, Dropout, BatchNormalization
+from keras.optimizers import Adam
+from keras.regularizers import l1_l2
+from keras.layers import Bidirectional
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
+from data_preparation import columns_to_scale as columns
 
 
-def build_model(input_shape, neurons1=64, neurons2=8,dropout=0.1, optimizer='adam', loss='mean_squared_error', metrics=None):
-    """
-    Builds a LSTM model.
-
-    Parameters:
-    input_shape (tuple): Shape of the input data.
-    neurons (int): Number of neurons.
-    dropout (float): Dropout rate.
-    optimizer (str): Optimizer to use.
-    loss (str): Loss function to use.
-    metrics (list): List of metrics to use.
-
-    Returns:
-    keras.Sequential: Compiled Keras model.
-    """
+def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', learning_rate=0.001, loss='mean_squared_error', metrics=None, l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
     if metrics is None:
         metrics = ['mae']
+
     model = Sequential()
-    model.add(LSTM(neurons1, return_sequences=True, input_shape=input_shape))
+
+    lstm_layer = LSTM(neurons, return_sequences=True, kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg), input_shape=input_shape)
+    layer_to_add = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
+    model.add(layer_to_add)
+
     model.add(Dropout(dropout))
-    model.add(LSTM(neurons2, return_sequences=False))
+    model.add(BatchNormalization())
+
+    for _ in range(additional_layers):
+        lstm_layer = LSTM(neurons, return_sequences=True, kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg))
+        layer_to_add = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
+        model.add(layer_to_add)
+        model.add(Dropout(dropout))
+        model.add(BatchNormalization())
+
+    lstm_layer = LSTM(neurons, return_sequences=False)
+    final_layer = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
+    model.add(final_layer)
+
     model.add(Dropout(dropout))
+    model.add(BatchNormalization())
     model.add(Dense(1))
-    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+    opt = Adam(learning_rate=learning_rate) if optimizer == 'adam' else optimizer
+    model.compile(optimizer=opt, loss=loss, metrics=metrics)
+
     return model
 
 
-def main(input_shape, model_path):
-    model = build_model(input_shape)
-    model.save(model_path)
-    print("Model built and saved successfully.")
-    print(model.summary())
+def prepare_callbacks(ticker, epoch, val_loss):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    model_dir = f'models/{ticker}'
+    log_dir = f'logs/{ticker}/{timestamp}'
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+
+    callbacks = [
+        EarlyStopping(monitor=val_loss, patience=10, verbose=1, restore_best_weights=True),
+        ModelCheckpoint(filepath=f'{model_dir}/model_{epoch:02d}-{val_loss}.keras', verbose=1, save_best_only=True),
+        ReduceLROnPlateau(monitor=val_loss, factor=0.1, patience=5, verbose=1),
+        TensorBoard(log_dir=log_dir, histogram_freq=1)
+    ]
+    return callbacks
+
+
+def main(ticker='BTC-USD'):
+    input_shape = (50, len(columns))
+    model = build_model(input_shape, additional_layers=1, bidirectional=True)
+    model.build(input_shape=(None, *input_shape))
+    model.save(f'models/model_{ticker}.keras')
+    model.summary()
 
 
 if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input_shape", nargs=2, type=int, default=[50, 15])
-    parser.add_argument("--model_path", type=str, default='models/bitcoin_prediction_model.keras')
-    args = parser.parse_args()
-    input_shape = tuple(args.input_shape)
-    main(input_shape, args.model_path)
+    main()
