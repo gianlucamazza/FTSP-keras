@@ -65,8 +65,7 @@ def main(ticker='BTC-USD'):
     paths = {
         'best_model_path': f'models/model_{ticker}.keras',
         'data': f'data/processed_data_{ticker}.csv',
-        'scaler': f'scalers/scaler_{ticker}.pkl',
-        'close_scaler': f'scalers/close_scaler_{ticker}.pkl'
+        'scaler': f'scalers/feature_scaler_{ticker}.pkl',
     }
 
     parameters = {
