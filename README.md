@@ -40,24 +40,23 @@ Each script is designed to be run sequentially:
    ```bash
    python model.py
      ```
-4. **Train Model**:
+4. **Predictions**:
    ```bash
-   python train.py
-     ```
-5. **Predictions**:
-6. ```bash
    python predict.py
      ```
 
 ## Requirements
 The project requires the following libraries:
-- Keras
-- TensorFlow
-- Pandas
-- NumPy
-- Matplotlib
-- scikit-learn
-- joblib
+```
+pandas~=2.1.3
+numpy~=1.26.2
+tensorflow~=2.15.0
+matplotlib~=3.8.2
+scikit-learn~=1.3.2
+keras~=2.15.0
+joblib~=1.3.2
+yfinance~=0.2.32
+```
 
 Install dependencies using:
 ```bash
