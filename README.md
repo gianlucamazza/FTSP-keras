@@ -26,26 +26,29 @@ Processed data files:
 ## Usage
 Run the entire process with `main.py` or individual scripts:
 
-1. **Using main.py** (automated process):
-   ```bash
-   python main.py --train   # For training
-   python main.py --predict # For predictions
-    ```
-2. **Using individual scripts**:
-    ```bash
-    python data_preparation.py
-    python feature_engineering.py
-    python train.py
-    python predict.py
-    ```
+- **Using main.py** (automated process):
+```bash
+python main.py --train   # For training
+python main.py --predict # For predictions
+```
+
+- **Using individual scripts**:
+```bash
+python data_preparation.py
+python feature_engineering.py
+python train.py
+python predict.py
+```
+
 ### Optional Arguments
 **Run individual scripts with different ticker symbols**:
-    ```bash
-    python data_preparation.py --ticker ETH-USD
-    python feature_engineering.py --ticker ETH-USD
-    python train.py --ticker ETH-USD
-    python predict.py --ticker ETH-USD
-    ```
+    
+```bash
+python data_preparation.py --ticker ETH-USD
+python feature_engineering.py --ticker ETH-USD
+python train.py --ticker ETH-USD
+python predict.py --ticker ETH-USD
+```
 
 ## Logging
 The project uses Python's logging module to output logs to both the terminal and log files, aiding in monitoring and debugging.
