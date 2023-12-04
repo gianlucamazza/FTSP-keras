@@ -1,28 +1,28 @@
 import subprocess
 
+tickers = ["BTC-USD", "ETH-USD"]
 
-def clean_data():
+
+def clean_data(_ticker="BTC-USD"):
     try:
-        # Remove the CSV files
-        subprocess.run(["rm", "data/processed_data.csv"], check=True)
-        subprocess.run(["rm", "data/scaled_data.csv"], check=True)
-        # Remove all the files in the models directory
-        print("Data cleaned successfully.")
+        subprocess.run(["rm", "-f", f"data/processed_data_{_ticker}.csv"])
+        subprocess.run(["rm", "-f", f"data/scaled_data_{_ticker}.csv"])
+        subprocess.run(["rm", "-f", f"scalers/scaler_{_ticker}.pkl"])
+        subprocess.run(["rm", "-f", f"scalers/close_scaler_{_ticker}.pkl"])
+        print(f"Data for {_ticker} cleaned successfully.")
     except subprocess.CalledProcessError:
-        print("An error occurred while cleaning the data.")
+        print(f"An error occurred while cleaning the data for {_ticker}.")
 
 
-def run_script(script_name):
+def run_script(script_name, _ticker):
     try:
-        subprocess.run(["python", script_name], check=True)
-        print(f"Script {script_name} executed successfully.")
+        subprocess.run(["python", script_name, _ticker], check=True)
+        print(f"Script {script_name} executed successfully for {_ticker}.")
     except subprocess.CalledProcessError:
-        print(f"An error occurred while executing {script_name}.")
+        print(f"An error occurred while executing {script_name} for {_ticker}.")
 
 
 if __name__ == "__main__":
-    # Clean the data
-    clean_data()
     scripts = [
         "data_preparation.py",
         "feature_engineering.py",
@@ -31,9 +31,11 @@ if __name__ == "__main__":
         "predict.py"
     ]
 
-    for script in scripts:
-        try:
-            run_script(script)
-        except subprocess.CalledProcessError:
-            print(f"An error occurred while executing {script}.")
-            break
+    for ticker in tickers:
+        clean_data(ticker)
+        for script in scripts:
+            try:
+                run_script(script, ticker)
+            except subprocess.CalledProcessError:
+                print(f"An error occurred while executing {script} for {ticker}.")
+                break

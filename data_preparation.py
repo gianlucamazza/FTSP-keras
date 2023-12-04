@@ -2,27 +2,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+import matplotlib.dates as mdates
 import joblib
 import os
 import yfinance as yf
 
-
-def load_data(file_path):
-    try:
-        df = pd.read_csv(file_path)
-
-        if 'Date' not in df.columns:
-            raise ValueError("DataFrame must contain a 'Date' column.")
-        df['Date'] = pd.to_datetime(df['Date'])
-        df.set_index('Date', inplace=True)
-
-        if df.isnull().any().any():
-            df.interpolate(method='time', inplace=True)
-        return df
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File '{file_path}' not found.")
-    except pd.errors.EmptyDataError:
-        raise pd.errors.EmptyDataError(f"File '{file_path}' is empty.")
+columns_to_scale = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume',
+                    'MA50', 'MA200', 'Returns', 'Volatility', 'MA20',
+                    'Upper', 'Lower', 'RSI', 'MACD']
 
 
 def merge_data(df1, df2):
@@ -31,29 +18,56 @@ def merge_data(df1, df2):
     return df
 
 
-def get_new_financial_data(ticker, start_date, end_date):
+def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
     df = yf.download(ticker, start=start_date, end=end_date, progress=False)
     df.reset_index(inplace=True)
-    df.rename(columns={'Adj Close': 'Adj_Close'}, inplace=True)
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
-    df = df[['Open', 'High', 'Low', 'Close', 'Adj_Close', 'Volume']]
+    df = df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
+    df.sort_index(inplace=True)
+    df.ffill(inplace=True)
+    df.bfill(inplace=True)
+
+    if file_path:
+        df.to_csv(file_path, index=True)
+
     return df
 
 
-def normalize_features(df, columns_to_scale):
-    missing_columns = [col for col in columns_to_scale if col not in df.columns]
+def normalize_features(df, columns, normalize=True):
+    if not normalize:
+        return df, None
+
+    missing_columns = [col for col in columns if col not in df.columns]
     if missing_columns:
         raise ValueError(f"Columns not found in DataFrame: {missing_columns}")
 
     scaler = MinMaxScaler()
-    df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+    df[columns] = scaler.fit_transform(df[columns])
     return df, scaler
 
 
-def save_scaler(scaler, path='models/scaler.pkl'):
+def save_scaler(scaler, ticker, path=None):
+    if path is None:
+        path = f'scalers/scaler_{ticker}.pkl'
     os.makedirs(os.path.dirname(path), exist_ok=True)
     joblib.dump(scaler, path)
+
+
+def calculate_rsi(prices, n=14):
+    deltas = prices.diff()
+    loss = deltas.where(deltas < 0, 0)
+    gain = deltas.where(deltas > 0, 0)
+    avg_gain = gain.rolling(window=n, min_periods=1).mean()
+    avg_loss = -loss.rolling(window=n, min_periods=1).mean()
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
+    return 100 - (100 / (1 + rs))
+
+
+def calculate_macd(prices, n_fast=12, n_slow=26):
+    ema_fast = prices.ewm(span=n_fast, min_periods=n_slow).mean()
+    ema_slow = prices.ewm(span=n_slow, min_periods=n_slow).mean()
+    return ema_fast - ema_slow
 
 
 def calculate_technical_indicators(df):
@@ -68,38 +82,54 @@ def calculate_technical_indicators(df):
     df['MA20'] = df['Close'].rolling(20).mean()
     df['Upper'] = df['MA20'] + 2 * df['Volatility']
     df['Lower'] = df['MA20'] - 2 * df['Volatility']
+    df['RSI'] = calculate_rsi(df['Close'])
+    df['MACD'] = calculate_macd(df['Close'])
+
     return df
 
 
-def visualize_data(df):
+def plot_price_history(dates, prices, ticker):
     plt.figure(figsize=(15, 10))
-    plt.plot(df['Close'], label='Close')
-    plt.title('Bitcoin price history')
+    plt.plot(dates, prices, label='Close Price')
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+    plt.gcf().autofmt_xdate()
+    plt.title(f'{ticker} Price History')
     plt.ylabel('Price (USD)')
     plt.xlabel('Date')
-    plt.legend(loc='upper left')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()
 
 
-def main():
-    file_path = 'data/BTC-USD.csv'
-    df = load_data(file_path)
-    last_date = df.index[-1]
+def visualize_data(df, ticker, columns, scaler_path=None):
+    if scaler_path:
+        scaler = joblib.load(scaler_path)
+        close_index = columns.index('Close')
+        non_scaled_close = scaler.inverse_transform(df[columns])[:, close_index]
+        plot_price_history(df.index, non_scaled_close, ticker)
+    else:
+        plot_price_history(df.index, df['Close'], ticker)
 
-    if last_date.date() < pd.Timestamp.today().date():
-        start_date = last_date + pd.Timedelta(days=1)
-        end_date = pd.Timestamp.today()
-        new_data = get_new_financial_data('BTC-USD', start_date, end_date)
-        df = merge_data(df, new_data)
-        df.to_csv(file_path, index=True)
 
+def main(ticker='BTC-USD', start_date=None, end_date=None):
+    get_financial_data(ticker, file_path=f'data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
+
+    df = pd.read_csv(f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
     df = calculate_technical_indicators(df)
-    columns_to_scale = ['MA50', 'MA200', 'Returns', 'Volatility', 'MA20', 'Upper', 'Lower']
+    df.bfill(inplace=True)
+
+    if df.isnull().any().any():
+        raise ValueError("DataFrame still contains NaN values after preprocessing.")
+
     df, scaler = normalize_features(df, columns_to_scale)
-    save_scaler(scaler)
-    df.to_csv('data/processed_data.csv', index=True)
-    visualize_data(df)
+    scaler_path = f'scalers/scaler_{ticker}.pkl'
+    save_scaler(scaler, ticker, path=scaler_path)
+
+    df.to_csv(f'data/processed_data_{ticker}.csv', index=True)
+    visualize_data(df, ticker, columns_to_scale, scaler_path)
 
 
 if __name__ == '__main__':
-    main()
+    main(ticker='BTC-USD', start_date='2015-01-01', end_date=None)

@@ -1,3 +1,8 @@
+data/
+models/
+scalers/
+logs/
+
 # .gitignore
 __pycache__/
 *.pyc

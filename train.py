@@ -1,105 +1,135 @@
 # train.py
+import joblib
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
-
+from sklearn.preprocessing import MinMaxScaler
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from model import build_model
+from model import prepare_callbacks
+from data_preparation import columns_to_scale as columns
+from keras.models import load_model
+from sklearn.model_selection import TimeSeriesSplit
 
 
 def load_dataset(file_path):
     df = pd.read_csv(file_path, index_col='Date')
     print(f"Loaded dataset shape: {df.shape}")
-    df.fillna(method='ffill', inplace=True)
-    df.fillna(method='bfill', inplace=True)
+    df.ffill(inplace=True)
     return df
 
 
-def split_data(df, train_window, overlap, input_timesteps, validation_split):
-    split_idx = int(len(df) * (1 - validation_split))
-    df_train = df.iloc[:split_idx]
-    df_val = df.iloc[split_idx:]
-
-    train_data = []
-    val_data = []
-
-    start = 0
-    while start + train_window <= len(df_train):
-        end_train = start + train_window
-
-        if end_train - start >= input_timesteps:
-            train_data.append(df_train.iloc[start:end_train].values)
-
-        start += train_window - overlap
-
-    start = 0
-    while start + train_window <= len(df_val):
-        end_train = start + train_window
-
-        if end_train - start >= input_timesteps:
-            val_data.append(df_val.iloc[start:end_train].values)
-
-        start += train_window - overlap
-
-    return np.array(train_data, dtype=object), np.array(val_data, dtype=object)
-
-
-def prepare_data(data, input_timesteps, num_features):
+def create_windowed_data(df, start_index, end_index, timesteps):
     X, y = [], []
-    for window in data:
-        if len(window) >= input_timesteps:
-            for i in range(len(window) - input_timesteps):
-                X.append(window[i:i + input_timesteps, :num_features])
-                y.append(window[i + input_timesteps - 1, -1])
-        else:
-            print(f"Finestra ignorata per mancanza di dati: {len(window)} timesteps")
-    X, y = np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
-    print(f"Prepared data - X shape: {X.shape}, y shape: {y.shape}")
-    return X, y
+    for i in range(start_index + timesteps, end_index):
+        X.append(df.iloc[i - timesteps:i].values)
+        y.append(df.iloc[i, 0])
+    return np.array(X), np.array(y)
 
 
+def evaluate_model(model, x_test, y_test, scaler):
+    y_pred = model.predict(x_test)
 
-def main():
-    df = load_dataset('data/scaled_data.csv')
+    target_scaler = MinMaxScaler()
+    target_scaler.min_, target_scaler.scale_ = scaler.min_[0], scaler.scale_[0]
+    target_scaler.data_min_, target_scaler.data_max_ = scaler.data_min_[0], scaler.data_max_[0]
+    target_scaler.data_range_ = scaler.data_range_[0]
 
-    # Split the data
-    train_window, overlap, timesteps, validation_split = 60, 30, 50, 0.2
-    train_data, val_data = split_data(df, train_window, overlap, timesteps, validation_split)
+    y_pred = target_scaler.inverse_transform(y_pred)
+    y_test = target_scaler.inverse_transform(y_test.reshape(-1, 1))
 
-    # Prepare the data for the LSTM model
-    num_features = 15
-    X_train, y_train = prepare_data(train_data, timesteps, num_features)
-    X_val, y_val = prepare_data(val_data, timesteps, num_features)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print(f"RMSE: {rmse:.2f}")
+    return y_pred, rmse
 
-    # Ensure there is data to train on
-    if X_train.size == 0 or y_train.size == 0:
-        raise ValueError("Training data is empty.")
-    if X_val.size == 0 or y_val.size == 0:
-        raise ValueError("Validation data is empty.")
 
-    # Build and train the model
-    model = build_model((timesteps, num_features), neurons=50, dropout=0.2)
-    model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_val, y_val))
-
-    # Evaluate the model
-    predictions = model.predict(X_val)
-    mse = mean_squared_error(y_val, predictions)
-    print(f'Mean Squared Error: {mse}')
-
-    # Plot predictions
+def plot_results(y_test, y_pred):
     plt.figure(figsize=(12, 6))
-    plt.plot(y_val, color='blue', label='True Values')
-    plt.plot(predictions, color='red', label='Predictions')
-    plt.title('Bitcoin Price Prediction Model Performance')
-    plt.xlabel('Time Steps')
-    plt.ylabel('Bitcoin Price')
+    plt.plot(y_test, label='Actual')
+    plt.plot(y_pred, label='Predicted')
     plt.legend()
-    plt.grid(True)
     plt.show()
 
-    # Save the model
-    model.save('models/bitcoin_prediction_model.keras')
+
+def main(ticker='BTC-USD', n_splits=5):
+
+    paths = {
+        'model': f'models/model_{ticker}.keras',
+        'data': f'data/scaled_data_{ticker}.csv',
+        'scaler': f'scalers/feature_scaler_{ticker}.pkl'
+    }
+
+    parameters = {
+        'train_timesteps': 60,
+        'test_timesteps': 30,
+        'features': len(columns),
+        'columns': columns
+    }
+
+    df = load_dataset(paths['data'])
+    df = df[parameters['columns']]
+    scaler = joblib.load(paths['scaler'])
+
+    df_scaled = pd.DataFrame(scaler.transform(df), columns=df.columns, index=df.index)
+
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+    best_model_path = f"{paths['model']}_best.keras"
+    model_checkpoint = ModelCheckpoint(filepath=best_model_path, monitor='val_loss', save_best_only=True)
+
+    total_length = len(df_scaled)
+    X, y = create_windowed_data(df_scaled, 0, total_length, parameters['train_timesteps'])
+
+    y = y.reshape(-1, 1)  # Reshape y to match the shape of the output layer
+
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    model = build_model((parameters['train_timesteps'], parameters['features']), neurons=100, dropout=0.3,
+                        additional_layers=2, bidirectional=True)
+
+    history_list = []
+
+    for i, (train_index, test_index) in enumerate(tscv.split(X)):
+        print(f"Training on fold {i + 1}/{n_splits}...")
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        # No need to fit the scaler again, just transform the data
+        X_train_scaled = X_train
+        X_test_scaled = X_test
+
+        history = model.fit(
+            X_train_scaled, y_train,
+            epochs=50,
+            batch_size=32,
+            validation_data=(X_test_scaled, y_test),
+            callbacks=[early_stopping, model_checkpoint, prepare_callbacks(ticker, epoch=10, val_loss='val_loss')],
+            verbose=2
+        )
+        history_list.append(history)
+
+        # Load the best model once after all folds have been trained
+    best_model = load_model(best_model_path)
+
+    # Evaluate the best model
+    rmse_list = []
+
+    # Use either a separate test set or the last fold as the test set for final evaluation
+    X_test_scaled = X[-1]  # Assuming the last fold is for testing
+    y_test_scaled = y[-1]
+
+    y_pred_scaled = best_model.predict(X_test_scaled)
+    y_pred = scaler.inverse_transform(y_pred_scaled)
+    y_test = scaler.inverse_transform(y_test_scaled.reshape(-1, 1))
+
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print(f"RMSE: {rmse:.2f}")
+    rmse_list.append(rmse)
+
+    plot_results(y_test, y_pred)
+
+    average_rmse = np.mean(rmse_list)
+    print(f"Average RMSE: {average_rmse:.2f}")
 
 
 if __name__ == '__main__':
-    main()
+    main(ticker='BTC-USD')
