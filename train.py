@@ -9,21 +9,24 @@ from model import build_model
 from data_preparation import columns_to_scale as columns
 from keras.models import load_model
 from sklearn.model_selection import TimeSeriesSplit
+from logger import setup_logger
+
+logger = setup_logger('train_logger', 'logs', 'train.log')
 
 
 def load_dataset(file_path):
     df = pd.read_csv(file_path, index_col='Date')
-    print(f"Loaded dataset shape: {df.shape}")
+    logger.info(f"Loaded dataset shape: {df.shape}")
     df.ffill(inplace=True)
     return df
 
 
-def create_windowed_data(df, timesteps):
-    X, y = [], []
-    for i in range(timesteps, len(df)):
-        X.append(df[i - timesteps:i])
+def create_windowed_data(df, steps):
+    x, y = [], []
+    for i in range(steps, len(df)):
+        x.append(df[i - steps:i])
         y.append(df[i, 0])
-    return np.array(X), np.array(y)
+    return np.array(x), np.array(y)
 
 
 def calculate_rmse(model, x_test, y_test):
@@ -32,7 +35,7 @@ def calculate_rmse(model, x_test, y_test):
 
 
 def train_model(x_train, y_train, x_val, y_val, model_path, parameters):
-    model = build_model((parameters['train_timesteps'], parameters['features']), neurons=100, dropout=0.3,
+    model = build_model((parameters['train_steps'], parameters['features']), neurons=100, dropout=0.3,
                         additional_layers=2, bidirectional=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=5)
     model_checkpoint = ModelCheckpoint(filepath=model_path, monitor='val_loss', save_best_only=True)
@@ -51,28 +54,36 @@ def plot_history(history):
 
 def main(ticker='BTC-USD'):
     paths = {'model': f'models/model_{ticker}.keras', 'data': f'data/scaled_data_{ticker}.csv'}
-    parameters = {'train_timesteps': 60, 'test_timesteps': 30, 'features': len(columns), 'columns': columns}
+    parameters = {'train_steps': 60, 'test_steps': 30, 'features': len(columns), 'columns': columns}
     df = load_dataset(paths['data'])
     df = df[parameters['columns']]
     scaler = MinMaxScaler()
     df_scaled = scaler.fit_transform(df)
-    X, y = create_windowed_data(df_scaled, parameters['train_timesteps'])
+    x, y = create_windowed_data(df_scaled, parameters['train_steps'])
     y = y.reshape(-1, 1)
-    n_splits = (len(df_scaled) - parameters['train_timesteps']) // parameters['test_timesteps']
+    n_splits = (len(df_scaled) - parameters['train_steps']) // parameters['test_steps']
+
     if n_splits < 1:
         raise ValueError("Not enough data for even one split!")
+
     tscv = TimeSeriesSplit(n_splits=n_splits)
     rmse_list = []
     history = None
-    for i, (train_index, test_index) in enumerate(tscv.split(X)):
-        X_train, X_test = X[train_index], X[test_index]
+    logger.info(f"Starting training for {ticker}")
+
+    for i, (train_index, test_index) in enumerate(tscv.split(x)):
+        percent_complete = (i / n_splits) * 100
+        logger.info(f"Training fold {i + 1}/{n_splits} ({percent_complete:.2f}% complete)")
+        x_train, x_test = x[train_index], x[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        model, history = train_model(X_train, y_train, X_test, y_test, paths['model'], parameters)
+        model, history = train_model(x_train, y_train, x_test, y_test, paths['model'], parameters)
         best_model = load_model(paths['model'])
-        rmse = calculate_rmse(best_model, X_test, y_test)
+        rmse = calculate_rmse(best_model, x_test, y_test)
         rmse_list.append(rmse)
         print(f"RMSE for fold {i + 1}: {rmse:.2f}")
-    print(f"Average RMSE across all folds: {np.mean(rmse_list):.2f}")
+
+    average_rmse = np.mean(rmse_list)
+    logger.info(f"Average RMSE across all folds: {average_rmse:.2f}")
     plot_history(history)
 
 

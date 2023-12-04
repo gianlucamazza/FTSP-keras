@@ -9,6 +9,7 @@ from keras.layers import Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 from data_preparation import columns_to_scale as columns
 
+
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', learning_rate=0.001, loss='mean_squared_error', metrics=None, l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
     if metrics is None:
         metrics = ['mae']
