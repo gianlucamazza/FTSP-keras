@@ -81,7 +81,7 @@ def main(ticker='BTC-USD'):
     reshaped_input = reshape_data(model_input, parameters['steps'], parameters['features'])
 
     model = load_model(paths['best_model_path'])
-    close_scaler = joblib.load(paths['scaler'])
+    close_scaler = joblib.load(f'scalers/close_scaler_{ticker}.pkl')
 
     historical_closing_prices = dataset['Close'][-parameters['steps']:]
 
