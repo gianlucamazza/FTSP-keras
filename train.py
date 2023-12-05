@@ -1,9 +1,9 @@
 # train.py
 import pandas as pd
 import numpy as np
+import joblib
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from model import build_model
 from data_preparation import columns_to_scale as columns
@@ -57,11 +57,17 @@ def main(ticker='BTC-USD'):
     parameters = {'train_steps': 60, 'test_steps': 30, 'features': len(columns), 'columns': columns}
     df = load_dataset(paths['data'])
     df = df[parameters['columns']]
-    scaler = MinMaxScaler()
-    df_scaled = scaler.fit_transform(df)
-    x, y = create_windowed_data(df_scaled, parameters['train_steps'])
+    feature_scaler = joblib.load(f'scalers/feature_scaler_{ticker}.pkl')
+    close_scaler = joblib.load(f'scalers/close_scaler_{ticker}.pkl')
+
+    feature_columns = [col for col in df.columns if col != 'Close']
+    df[feature_columns] = feature_scaler.transform(df[feature_columns])
+
+    df['Close'] = close_scaler.transform(df[['Close']])
+
+    x, y = create_windowed_data(df[parameters['columns']].values, parameters['train_steps'])
     y = y.reshape(-1, 1)
-    n_splits = (len(df_scaled) - parameters['train_steps']) // parameters['test_steps']
+    n_splits = (len(df) - parameters['train_steps']) // parameters['test_steps']
 
     if n_splits < 1:
         raise ValueError("Not enough data for even one split!")

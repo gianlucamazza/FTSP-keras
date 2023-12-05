@@ -11,6 +11,12 @@ def normalize_features(df, columns_to_normalize):
     return df, scaler
 
 
+def normalize_close(df):
+    scaler = MinMaxScaler()
+    df['Close'] = scaler.fit_transform(df[['Close']])
+    return scaler
+
+
 def save_scaler(scaler, ticker, scaler_type='feature'):
     path = f'scalers/{scaler_type}_scaler_{ticker}.pkl'
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -19,8 +25,12 @@ def save_scaler(scaler, ticker, scaler_type='feature'):
 
 def process_and_save_features(df, ticker):
     # Normalize all features except Close
-    columns_to_normalize = df.select_dtypes(include=['number']).columns.tolist()
+    columns_to_normalize = [col for col in df.select_dtypes(include=['number']).columns.tolist() if col != 'Close']
     df, feature_scaler = normalize_features(df, columns_to_normalize)
+
+    # Normalize Close
+    close_scaler = normalize_close(df)
+    save_scaler(close_scaler, ticker, scaler_type='close')
 
     # Save scaler for all features
     save_scaler(feature_scaler, ticker, scaler_type='feature')
