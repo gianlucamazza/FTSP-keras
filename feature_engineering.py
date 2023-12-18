@@ -1,8 +1,15 @@
 # feature_engineering.py
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from data_preparation import COLUMNS_TO_SCALE
 import joblib
 import os
+
+
+def validate_input_data(df, required_columns):
+    missing_columns = set(required_columns) - set(df.columns)
+    if missing_columns:
+        raise ValueError(f"Missing columns in input data: {missing_columns}")
 
 
 def normalize_features(df, columns_to_normalize):
@@ -24,8 +31,11 @@ def save_scaler(scaler, ticker, scaler_type='feature'):
 
 
 def process_and_save_features(df, ticker):
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'] + COLUMNS_TO_SCALE
+    validate_input_data(df, required_columns)
+
     # Normalize all features except Close
-    columns_to_normalize = [col for col in df.select_dtypes(include=['number']).columns.tolist() if col != 'Close']
+    columns_to_normalize = [col for col in df.columns if col != 'Close']
     df, feature_scaler = normalize_features(df, columns_to_normalize)
 
     # Normalize Close
