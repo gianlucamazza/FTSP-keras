@@ -6,7 +6,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from model import build_model
-from data_preparation import columns_to_scale as columns
+from data_preparation import COLUMNS_TO_SCALE as FEATURES
 from keras.models import load_model
 from sklearn.model_selection import TimeSeriesSplit
 from logger import setup_logger
@@ -40,7 +40,7 @@ def train_model(x_train, y_train, x_val, y_val, model_path, parameters):
     early_stopping = EarlyStopping(monitor='val_loss', patience=5)
     model_checkpoint = ModelCheckpoint(filepath=model_path, monitor='val_loss', save_best_only=True)
     history = model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_val, y_val),
-                        callbacks=[early_stopping, model_checkpoint], verbose=2)
+                        callbacks=[early_stopping, model_checkpoint], verbose=1)
     return model, history
 
 
@@ -54,15 +54,15 @@ def plot_history(history):
 
 def main(ticker='BTC-USD'):
     paths = {'model': f'models/model_{ticker}.keras', 'data': f'data/scaled_data_{ticker}.csv'}
-    parameters = {'train_steps': 60, 'test_steps': 30, 'features': len(columns), 'columns': columns}
+    parameters = {'train_steps': 60, 'test_steps': 30, 'features': len(FEATURES), 'columns': FEATURES}
     df = load_dataset(paths['data'])
-    df = df[parameters['columns']]
+
+    if 'Close' not in df.columns:
+        raise ValueError("Column 'Close' not found in the DataFrame.")
+
     feature_scaler = joblib.load(f'scalers/feature_scaler_{ticker}.pkl')
+    df[FEATURES] = feature_scaler.transform(df[FEATURES])
     close_scaler = joblib.load(f'scalers/close_scaler_{ticker}.pkl')
-
-    feature_columns = [col for col in df.columns if col != 'Close']
-    df[feature_columns] = feature_scaler.transform(df[feature_columns])
-
     df['Close'] = close_scaler.transform(df[['Close']])
 
     x, y = create_windowed_data(df[parameters['columns']].values, parameters['train_steps'])

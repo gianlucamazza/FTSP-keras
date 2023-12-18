@@ -2,7 +2,7 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
-from data_preparation import columns_to_scale as columns
+from data_preparation import COLUMNS_TO_SCALE as FEATURES
 from keras.models import load_model
 from logger import setup_logger
 
@@ -29,79 +29,73 @@ def reshape_data(data, steps, features):
     return data[-steps:].reshape(1, steps, features)
 
 
-def predict_price(model, data, scaler):
-    prediction = model.predict(data)
+def predict_price(model, reshaped_data):
+    prediction = model.predict(reshaped_data)
     return prediction[0, 0]
 
 
-def predict_next_days(model, initial_data, close_scaler, days=30, steps=60):
+def predict_next_days(model, initial_data, feature_scaler, close_scaler, days=30, steps=60):
     future_predictions = []
     input_data = initial_data[-steps:].copy()
 
     for _ in range(days):
-        model_input = reshape_data(input_data, steps, len(columns))
-        predicted_price = predict_price(model, model_input, close_scaler)
+        scaled_input = feature_scaler.transform(input_data[:, :-1])
+        model_input = reshape_data(scaled_input, steps, len(FEATURES) - 1)
+        predicted_scaled_price = predict_price(model, model_input)
+
+        predicted_price = close_scaler.inverse_transform([[predicted_scaled_price]])[0, 0]
         future_predictions.append(predicted_price)
 
         new_row = np.zeros_like(input_data[0])
-        new_row[-1] = predicted_price
+        new_row[-1] = predicted_scaled_price
         input_data = np.vstack((input_data[1:], [new_row]))
 
     return future_predictions
 
 
-def plot_future_predictions(dates, historical_prices, future_dates, future_predictions):
+def plot_predictions(dates, historical_prices, future_prices):
     plt.figure(figsize=(12, 6))
-    plt.plot(dates, historical_prices, label='Historical Close')
-    plt.plot(future_dates, future_predictions, 'ro-', label='Predicted Close')
+    plt.plot(dates, historical_prices, color='blue', label='Historical Close')
+    plt.plot(dates, future_prices, color='red', label='Predicted Close')
     plt.legend()
-    plt.xlabel('Date')
-    plt.ylabel('Price')
     plt.title('Future Price Predictions')
     plt.show()
 
 
 def main(ticker='BTC-USD'):
     paths = {
-        'best_model_path': f'models/model_{ticker}.keras',
-        'data': f'data/processed_data_{ticker}.csv',
-        'scaler': f'scalers/feature_scaler_{ticker}.pkl',
+        'model': f'models/model_{ticker}.keras',
+        'data': f'data/scaled_data_{ticker}.csv',
+        'feature_scaler': f'scalers/feature_scaler_{ticker}.pkl',
+        'close_scaler': f'scalers/close_scaler_{ticker}.pkl'
     }
 
-    parameters = {
-        'steps': 60,
-        'features': len(columns),
-        'columns': columns
-    }
+    # Load and preprocess dataset
+    df = load_dataset(paths['data'])
+    if 'Close' not in df.columns:
+        raise ValueError("Column 'Close' not found in the DataFrame.")
 
-    dataset = load_dataset(paths['data'])
-    feature_data = select_features(dataset, parameters['columns'])
+    # Include 'Close' in the features to select
+    all_features = FEATURES + ['Close']
+    df = select_features(df, all_features)
 
-    model_input = feature_data.iloc[-parameters['steps']:].to_numpy()
-    reshaped_input = reshape_data(model_input, parameters['steps'], parameters['features'])
+    # Load scalers
+    feature_scaler = joblib.load(paths['feature_scaler'])
+    close_scaler = joblib.load(paths['close_scaler'])
 
-    model = load_model(paths['best_model_path'])
-    close_scaler = joblib.load(f'scalers/close_scaler_{ticker}.pkl')
+    # Apply scalers
+    df[FEATURES] = feature_scaler.transform(df[FEATURES])
+    df['Close'] = close_scaler.transform(df[['Close']])
 
-    historical_closing_prices = dataset['Close'][-parameters['steps']:]
+    # Load model
+    model = load_model(paths['model'])
 
-    historical_dates = dataset.index[-parameters['steps']:]
-    future_dates = pd.date_range(start=historical_dates[-1] + pd.Timedelta(days=1), periods=30)
+    # Predict future prices
+    future_prices = predict_next_days(model, df.values, feature_scaler, close_scaler)
 
-    try:
-        predicted_prices = predict_next_days(model, reshaped_input, close_scaler, days=30, steps=parameters['steps'])
-        logger.info("Predictions calculated successfully.")
-        for date, price in zip(future_dates, predicted_prices):
-            logger.info(f"{date}: {price}")
-    except Exception as e:
-        logger.error(f"Error predicting next 30 days: {e}")
-        raise
-
-    predicted_prices = close_scaler.inverse_transform(
-        np.array(predicted_prices).reshape(-1, 1)
-    ).flatten()
-
-    plot_future_predictions(historical_dates, historical_closing_prices, future_dates, predicted_prices)
+    # Plot predictions
+    dates = pd.date_range(start=df.index[-1], periods=len(future_prices) + 1)[1:]
+    plot_predictions(dates, df['Close'].tail(30).values, future_prices)
 
     plt.savefig(f'predictions/{ticker}_predictions.png')
     logger.info("Prediction plot saved successfully.")
