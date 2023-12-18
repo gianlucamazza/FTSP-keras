@@ -13,4 +13,5 @@ venv/
 /data/
 /logs/
 /models/
+/scalers/
 /predictions/

@@ -1,7 +1,8 @@
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
-import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from data_preparation import calculate_technical_indicators
 from data_preparation import COLUMNS_TO_SCALE as FEATURES
 from keras.models import load_model
 from logger import setup_logger
@@ -9,99 +10,93 @@ from logger import setup_logger
 logger = setup_logger('predict_logger', 'logs', 'predict.log')
 
 
-def load_dataset(file_path):
-    try:
-        df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
-        df.ffill(inplace=True)
-        df.bfill(inplace=True)
-        logger.info(f"Dataset loaded successfully from {file_path}")
-        return df
-    except Exception as e:
-        logger.error(f"Error loading dataset from {file_path}: {e}")
-        raise
+def arrange_and_fill(df):
+    df.sort_index(inplace=True)
+    df.ffill(inplace=True)
+    df.bfill(inplace=True)
+    return df
 
 
-def select_features(df, feature_columns):
-    return df[feature_columns]
+class DataPreparator:
+    def __init__(self, ticker, data_path, processed_data_path, scaled_data_path, feature_scaler_path, close_scaler_path):
+        self.ticker = ticker
+        self.data_path = data_path
+        self.processed_data_path = processed_data_path
+        self.scaled_data_path = scaled_data_path
+        self.feature_scaler_path = feature_scaler_path
+        self.close_scaler_path = close_scaler_path
+
+    def process_and_save_features(self, df):
+        missing_columns = set(FEATURES) - set(df.columns)
+        if missing_columns:
+            raise ValueError(f"Missing columns in DataFrame: {missing_columns}")
+
+        feature_scaler = MinMaxScaler()
+        close_scaler = MinMaxScaler()
+
+        df[FEATURES] = feature_scaler.fit_transform(df[FEATURES])
+        df[['Close']] = close_scaler.fit_transform(df[['Close']])
+
+        joblib.dump(feature_scaler, self.feature_scaler_path)
+        joblib.dump(close_scaler, self.close_scaler_path)
+
+        return df, feature_scaler, close_scaler
+
+    def prepare_data(self):
+        df = pd.read_csv(self.data_path, index_col='Date', parse_dates=True)
+        df = arrange_and_fill(df)
+        df = calculate_technical_indicators(df)
+        df.to_csv(self.processed_data_path, index=True)
+        df_scaled, feature_scaler, close_scaler = self.process_and_save_features(df)
+        df_scaled.to_csv(self.scaled_data_path, index=True)
+        return df_scaled, feature_scaler, close_scaler
 
 
-def reshape_data(data, steps, features):
-    return data[-steps:].reshape(1, steps, features)
+class ModelPredictor:
+    def __init__(self, model_path, feature_scaler, close_scaler):
+        self.model = load_model(model_path)
+        self.feature_scaler = feature_scaler
+        self.close_scaler = close_scaler
+
+    def predict(self, df_scaled):
+        predictions = self.model.predict(df_scaled)
+        return predictions
+
+    def inverse_scale_predictions(self, predictions):
+        return self.close_scaler.inverse_transform(predictions)
 
 
-def predict_price(model, reshaped_data):
-    prediction = model.predict(reshaped_data)
-    return prediction[0, 0]
-
-
-def predict_next_days(model, initial_data, feature_scaler, close_scaler, days=30, steps=60):
-    future_predictions = []
-    input_data = initial_data[-steps:].copy()
-
-    for _ in range(days):
-        scaled_input = feature_scaler.transform(input_data[:, :-1])
-        model_input = reshape_data(scaled_input, steps, len(input_data[0]) - 1)
-        predicted_scaled_price = predict_price(model, model_input)
-
-        predicted_price = close_scaler.inverse_transform([[predicted_scaled_price]])[0, 0]
-        future_predictions.append(predicted_price)
-
-        new_row = np.zeros_like(input_data[0])
-        new_row[-1] = predicted_scaled_price
-        input_data = np.vstack((input_data[1:], [new_row]))
-
-    return future_predictions
-
-
-def plot_predictions(dates, historical_prices, future_prices):
-    plt.figure(figsize=(12, 6))
-
-    historical_dates = dates[:len(historical_prices)]
-    plt.plot(historical_dates, historical_prices, color='blue', label='Historical Close')
-
-    prediction_dates = pd.date_range(start=historical_dates[-1] + pd.Timedelta(days=1),
-                                     periods=len(future_prices))
-    plt.plot(prediction_dates, future_prices, color='red', label='Predicted Close')
-
+def plot_predictions(predictions, actual_values, ticker, save_path):
+    plt.figure(figsize=(10, 6))
+    plt.plot(predictions, label='Predicted')
+    plt.plot(actual_values, label='Actual')
+    plt.title(f'{ticker} Price Predictions')
+    plt.xlabel('Time')
+    plt.ylabel('Price')
     plt.legend()
-    plt.title('Future Price Predictions')
+    plt.savefig(save_path)
     plt.show()
 
 
-def main(ticker='BTC-USD'):
-    paths = {
-        'model': f'models/model_{ticker}.keras',
-        'data': f'data/scaled_data_{ticker}.csv',
-        'feature_scaler': f'scalers/feature_scaler_{ticker}.pkl',
-        'close_scaler': f'scalers/close_scaler_{ticker}.pkl'
-    }
+def main(ticker='BTC-USD', start_date='2022-01-01', end_date='2023-01-01'):
+    data_path = f'data/raw_data_{ticker}.csv'
+    processed_data_path = f'data/processed_data_{ticker}.csv'
+    scaled_data_path = f'data/scaled_data_{ticker}.csv'
+    model_path = f'models/model_{ticker}.keras'
+    feature_scaler_path = f'scalers/feature_scaler_{ticker}.pkl'
+    close_scaler_path = f'scalers/close_scaler_{ticker}.pkl'
 
-    df = load_dataset(paths['data'])
-    if 'Close' not in df.columns:
-        raise ValueError("Column 'Close' not found in the DataFrame.")
+    data_preparator = DataPreparator(ticker, data_path, processed_data_path, scaled_data_path, feature_scaler_path,
+                                     close_scaler_path)
+    df_scaled, feature_scaler, close_scaler = data_preparator.prepare_data()
 
-    historical_prices = df['Close'].tail(30).values
+    model_predictor = ModelPredictor(model_path, feature_scaler, close_scaler)
+    predictions_scaled = model_predictor.predict(df_scaled)
+    predictions = model_predictor.inverse_scale_predictions(predictions_scaled)
 
-    all_features = FEATURES + ['Close']
-    df = select_features(df, all_features)
-
-    # Load scalers
-    feature_scaler = joblib.load(paths['feature_scaler'])
-    close_scaler = joblib.load(paths['close_scaler'])
-
-    df[FEATURES] = feature_scaler.transform(df[FEATURES])
-    df['Close'] = close_scaler.transform(df[['Close']])
-
-    model = load_model(paths['model'])
-
-    future_prices = predict_next_days(model, df.values, feature_scaler, close_scaler)
-
-    dates = pd.date_range(start=df.index[0], periods=len(df) + len(future_prices))
-    plot_predictions(dates, historical_prices, future_prices)
-
-    plt.savefig(f'predictions/{ticker}_predictions.png')
-    logger.info("Prediction plot saved successfully.")
+    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
+    plot_predictions(predictions, df['Close'].values, ticker, f'predictions/predictions_{ticker}.png')
 
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD')
+    main()
