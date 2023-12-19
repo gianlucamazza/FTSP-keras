@@ -1,7 +1,7 @@
 import argparse
 import os
 import subprocess
-from logger import setup_logger
+from src.logger import setup_logger
 
 logger = setup_logger('main_logger', 'logs', 'main.log')
 
