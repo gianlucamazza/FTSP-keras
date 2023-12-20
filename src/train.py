@@ -10,7 +10,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.pyplot as plt
 from model import build_model
 from logger import setup_logger
-from data_preparation import COLUMNS, COLUMNS_TO_SCALE as FEATURES
+from data_preparation import COLUMN_SETS
 
 PARAMETERS = {
     'neurons': 100,
@@ -55,9 +55,17 @@ class ModelTrainer:
             raise
 
     def prepare_data(self, parameters):
+        missing_columns = set(COLUMN_SETS['to_scale']) - set(self.df.columns)
+        if missing_columns:
+            raise ValueError(f"Missing required columns in the DataFrame: {missing_columns}")
+
         self.df[self.COLUMN_TO_PREDICT] = self.close_scaler.transform(self.df[[self.COLUMN_TO_PREDICT]])
-        self.df[FEATURES] = self.feature_scaler.transform(self.df[FEATURES])
-        self.x, self.y = create_windowed_data(self.df[COLUMNS].values, parameters['train_steps'])
+
+        scaler_columns = [col for col in COLUMN_SETS['to_scale'] if col in self.df.columns]
+        self.df = self.df.reindex(columns=scaler_columns)
+        self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
+
+        self.x, self.y = create_windowed_data(self.df[scaler_columns].values, parameters['train_steps'])
         self.y = self.y.reshape(-1, 1)
 
 
@@ -71,7 +79,7 @@ def create_windowed_data(df, steps):
 
 def train_model(x_train, y_train, x_val, y_val, model_path, parameters):
     build_model_params = {
-        'input_shape': (parameters['train_steps'], len(FEATURES)),
+        'input_shape': (parameters['train_steps'], len(COLUMN_SETS['to_scale'])),
         'neurons': parameters['neurons'],
         'dropout': parameters['dropout'],
         'additional_layers': parameters['additional_layers'],

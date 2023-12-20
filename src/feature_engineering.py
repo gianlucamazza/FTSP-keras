@@ -42,7 +42,7 @@ def save_scaler(scaler, ticker, scaler_type='feature'):
 def process_and_save_features(df, ticker):
     logger.info(f"Processing features for {ticker}.")
     df = calculate_technical_indicators(df)
-    required_columns = COLUMN_SETS['required']
+    required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
     validate_input_data(df, required_columns)
 
     columns_to_normalize = [col for col in df.columns if col != 'Close']

@@ -6,11 +6,15 @@ from keras.optimizers import Adam
 from keras.regularizers import l1_l2
 from keras.layers import Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-from data_preparation import COLUMNS_TO_SCALE
+from data_preparation import COLUMN_SETS
 from pathlib import Path
+import logger as logger
+
+logger = logger.setup_logger('model_logger', 'logs', 'model.log')
 
 
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', learning_rate=0.001, loss='mean_squared_error', metrics=None, l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
+    logger.info("Building the model.")
     if metrics is None:
         metrics = ['mae']
 
@@ -45,6 +49,7 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam', learning
 
 
 def prepare_callbacks(ticker, monitor='val_loss', epoch=0):
+    logger.info(f"Preparing callbacks for {ticker}.")
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     model_dir = Path(f'models/{ticker}')
     log_dir = Path(f'logs/{ticker}/{timestamp}')
@@ -61,11 +66,14 @@ def prepare_callbacks(ticker, monitor='val_loss', epoch=0):
     return callbacks
 
 
-def main(ticker='BTC-USD'):
-    input_shape = (60, len(COLUMNS_TO_SCALE))
+def main(ticker='BTC-USD', timesteps=60):
+    logger.info(f"Starting model building for {ticker}.")
+    input_shape = (timesteps, len(COLUMN_SETS['to_scale']))
     model = build_model(input_shape, additional_layers=1, bidirectional=True)
     model.build(input_shape=(None, *input_shape))
-    model.save(f'models/model_{ticker}.keras')
+    model_path = f'models/model_{ticker}.keras'
+    model.save(model_path)
+    logger.info(f"Model saved at {model_path}.")
     model.summary()
 
 

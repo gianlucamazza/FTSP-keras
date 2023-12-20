@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
-from pathlib import Path
+
 import logger as logger
 from config import COLUMN_SETS
 
