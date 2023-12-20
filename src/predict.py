@@ -2,12 +2,14 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from data_preparation import calculate_technical_indicators
-from data_preparation import COLUMNS_TO_SCALE as FEATURES
+from technical_indicators import calculate_technical_indicators
+from config import COLUMN_SETS
 from keras.models import load_model
 from logger import setup_logger
+from pathlib import Path
 
-logger = setup_logger('predict_logger', 'logs', 'predict.log')
+BASE_DIR = Path(__file__).parent.parent
+logger = setup_logger('predict_logger', BASE_DIR / 'logs', 'predict.log')
 
 
 def arrange_and_fill(df):
@@ -18,23 +20,23 @@ def arrange_and_fill(df):
 
 
 class DataPreparator:
-    def __init__(self, ticker, data_path, processed_data_path, scaled_data_path, feature_scaler_path, close_scaler_path):
+    def __init__(self, ticker):
         self.ticker = ticker
-        self.data_path = data_path
-        self.processed_data_path = processed_data_path
-        self.scaled_data_path = scaled_data_path
-        self.feature_scaler_path = feature_scaler_path
-        self.close_scaler_path = close_scaler_path
+        self.data_path = BASE_DIR / f'data/raw_data_{self.ticker}.csv'
+        self.processed_data_path = BASE_DIR / f'data/processed_data_{self.ticker}.csv'
+        self.scaled_data_path = BASE_DIR / f'data/scaled_data_{self.ticker}.csv'
+        self.feature_scaler_path = BASE_DIR / f'scalers/feature_scaler_{self.ticker}.pkl'
+        self.close_scaler_path = BASE_DIR / f'scalers/close_scaler_{self.ticker}.pkl'
 
     def process_and_save_features(self, df):
-        missing_columns = set(FEATURES) - set(df.columns)
+        missing_columns = set(COLUMN_SETS['to_scale']) - set(df.columns)
         if missing_columns:
             raise ValueError(f"Missing columns in DataFrame: {missing_columns}")
 
         feature_scaler = MinMaxScaler()
         close_scaler = MinMaxScaler()
 
-        df[FEATURES] = feature_scaler.fit_transform(df[FEATURES])
+        df[COLUMN_SETS['to_scale']] = feature_scaler.fit_transform(df[COLUMN_SETS['to_scale']])
         df[['Close']] = close_scaler.fit_transform(df[['Close']])
 
         joblib.dump(feature_scaler, self.feature_scaler_path)
@@ -53,10 +55,11 @@ class DataPreparator:
 
 
 class ModelPredictor:
-    def __init__(self, model_path, feature_scaler, close_scaler):
-        self.model = load_model(model_path)
-        self.feature_scaler = feature_scaler
-        self.close_scaler = close_scaler
+    def __init__(self, ticker):
+        self.model_path = BASE_DIR / f'models/model_{ticker}.keras'
+        self.model = load_model(self.model_path)
+        self.feature_scaler = joblib.load(BASE_DIR / f'scalers/feature_scaler_{ticker}.pkl')
+        self.close_scaler = joblib.load(BASE_DIR / f'scalers/close_scaler_{ticker}.pkl')
 
     def predict(self, df_scaled):
         predictions = self.model.predict(df_scaled)
@@ -79,23 +82,15 @@ def plot_predictions(predictions, actual_values, ticker, save_path):
 
 
 def main(ticker='BTC-USD', start_date='2022-01-01', end_date='2023-01-01'):
-    data_path = f'data/raw_data_{ticker}.csv'
-    processed_data_path = f'data/processed_data_{ticker}.csv'
-    scaled_data_path = f'data/scaled_data_{ticker}.csv'
-    model_path = f'models/model_{ticker}.keras'
-    feature_scaler_path = f'scalers/feature_scaler_{ticker}.pkl'
-    close_scaler_path = f'scalers/close_scaler_{ticker}.pkl'
-
-    data_preparator = DataPreparator(ticker, data_path, processed_data_path, scaled_data_path, feature_scaler_path,
-                                     close_scaler_path)
+    data_preparator = DataPreparator(ticker)
     df_scaled, feature_scaler, close_scaler = data_preparator.prepare_data()
 
-    model_predictor = ModelPredictor(model_path, feature_scaler, close_scaler)
+    model_predictor = ModelPredictor(ticker)
     predictions_scaled = model_predictor.predict(df_scaled)
     predictions = model_predictor.inverse_scale_predictions(predictions_scaled)
 
-    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
-    plot_predictions(predictions, df['Close'].values, ticker, f'predictions/predictions_{ticker}.png')
+    df = pd.read_csv(BASE_DIR / f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
+    plot_predictions(predictions, df['Close'].values, ticker, BASE_DIR / f'predictions/predictions_{ticker}.png')
 
 
 if __name__ == '__main__':

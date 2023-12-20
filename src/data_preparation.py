@@ -10,6 +10,8 @@ from config import COLUMN_SETS
 
 logger = logger.setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
 
+BASE_DIR = Path(__file__).parent.parent
+
 
 def download_financial_data(ticker, start_date, end_date):
     logger.info(f"Downloading data for {ticker} from {start_date} to {end_date}.")
@@ -39,9 +41,10 @@ def arrange_and_fill(df, ticker):
     return df
 
 
-def save_df_to_csv(df, file_path):
+def save_df_to_csv(df, relative_path):
+    file_path = BASE_DIR / relative_path
     logger.info(f"Saving DataFrame to {file_path}.")
-    Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(file_path, index=True)
 
 
@@ -78,7 +81,9 @@ def plot_price_history(dates, prices, ticker):
 
 def main(ticker='BTC-USD', start_date=None, end_date=None):
     logger.info(f"Starting data preparation for {ticker}.")
-    df = get_financial_data(ticker, file_path=f'data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
+    raw_data_path = f'data/raw_data_{ticker}.csv'
+    processed_data_path = f'data/processed_data_{ticker}.csv'
+    df = get_financial_data(ticker, file_path='data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
     save_df_to_csv(df, f'data/processed_data_{ticker}.csv')
     logger.info(f'Finished data preparation for {ticker}.')
 
