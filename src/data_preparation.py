@@ -83,8 +83,8 @@ def main(ticker='BTC-USD', start_date=None, end_date=None):
     logger.info(f"Starting data preparation for {ticker}.")
     raw_data_path = f'data/raw_data_{ticker}.csv'
     processed_data_path = f'data/processed_data_{ticker}.csv'
-    df = get_financial_data(ticker, file_path='data/raw_data_{ticker}.csv', start_date=start_date, end_date=end_date)
-    save_df_to_csv(df, f'data/processed_data_{ticker}.csv')
+    df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
+    save_df_to_csv(df, processed_data_path)
     logger.info(f'Finished data preparation for {ticker}.')
 
 
