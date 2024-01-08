@@ -42,7 +42,7 @@ def scale_close_column(df, df_scaled, close_scaler_path):
     return close_scaler
 
 
-def scale_features(df, close_column):
+def scale_features(df):
     """Scales the features of the DataFrame."""
     feature_scaler = MinMaxScaler()
     scaler_columns = [col for col in COLUMN_SETS['to_scale'] if col in df.columns]
@@ -66,7 +66,7 @@ class DataPreparator:
         if missing_columns:
             raise ValueError(f"Missing columns in DataFrame: {missing_columns}")
 
-        feature_scaler, df_scaled = scale_features(df, 'Close')
+        feature_scaler, df_scaled = scale_features(df)
         joblib.dump(feature_scaler, self.feature_scaler_path)
 
         close_scaler = scale_close_column(df, df_scaled, self.close_scaler_path)
@@ -174,7 +174,14 @@ def main(ticker='BTC-USD'):
 
         actual_values_segment = df['Close'].values[-len(predictions):]
 
-        plot_predictions(predictions, actual_values_segment, historical_dates, future_dates, ticker, BASE_DIR / f'predictions/predictions_{ticker}.png')
+        plot_predictions(
+            predictions,
+            actual_values_segment,
+            historical_dates,
+            future_dates,
+            ticker,
+            BASE_DIR / f'predictions/predictions_{ticker}.png'
+        )
     except Exception as e:
         logger.error(f"Error in main: {e}")
 
