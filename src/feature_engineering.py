@@ -11,14 +11,6 @@ BASE_DIR = Path(__file__).parent.parent
 logger = logger.setup_logger('feature_engineering_logger', BASE_DIR / 'logs', 'feature_engineering.log')
 
 
-def validate_input_data(df, required_columns):
-    missing_columns = set(required_columns) - set(df.columns)
-    if missing_columns:
-        error_message = f"Missing columns in input data: {missing_columns}"
-        logger.error(error_message)
-        raise ValueError(error_message)
-
-
 def check_data(df, step_description):
     logger.info(f"Data after {step_description}: shape = {df.shape}")
     logger.info(f"Sample data:\n{df.head()}")
@@ -58,19 +50,12 @@ def process_and_save_features(df, ticker):
     df = calculate_technical_indicators(df)
     check_data(df, "calculating technical indicators")
 
-    required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
-    validate_input_data(df, required_columns)
-
     clean_data(df)
 
-    columns_to_normalize = [col for col in df.columns if col != 'Close']
+    columns_to_normalize = COLUMN_SETS['to_scale']
     df, feature_scaler = normalize_features(df, columns_to_normalize)
     check_data(df, "normalizing features")
 
-    close_scaler = normalize_close(df)
-    check_data(df, "normalizing 'Close' column")
-
-    save_scaler(close_scaler, ticker, scaler_type='close')
     save_scaler(feature_scaler, ticker, scaler_type='feature')
 
     scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'

@@ -32,23 +32,20 @@ class ModelTrainer:
     MODELS_FOLDER = 'models'
 
     def __init__(self, ticker='BTC-USD'):
+        self.x = None
+        self.y = None
         self.ticker = ticker
         self.data_path = Path(BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv')
         self.model_path = Path(BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}.keras')
-        self.feature_scaler, self.close_scaler = self.load_scalers()
+        self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
 
-    def load_scalers(self):
-        feature_scaler = joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl')
-        close_scaler = joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/close_scaler_{self.ticker}.pkl')
-        return feature_scaler, close_scaler
+    def load_scaler(self):
+        return joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl')
 
     def load_dataset(self):
         try:
-            df = pd.read_csv(self.data_path, index_col='Date')
-            df.ffill(inplace=True)
-            logger.info(f"Loaded dataset shape: {df.shape}")
-            return df
+            return pd.read_csv(self.data_path, index_col='Date')
         except Exception as e:
             logger.error(f"Error loading dataset: {e}")
             raise
@@ -58,14 +55,11 @@ class ModelTrainer:
         if missing_columns:
             raise ValueError(f"Missing required columns in the DataFrame: {missing_columns}")
 
-        self.df[self.COLUMN_TO_PREDICT] = self.close_scaler.transform(self.df[[self.COLUMN_TO_PREDICT]])
-
-        scaler_columns = [col for col in COLUMN_SETS['to_scale'] if col in self.df.columns]
+        scaler_columns = COLUMN_SETS['to_scale']
         self.df = self.df.reindex(columns=scaler_columns)
         self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
 
         self.x, self.y = create_windowed_data(self.df[scaler_columns].values, parameters['train_steps'])
-        self.y = self.y.reshape(-1, 1)
 
 
 def create_windowed_data(df, steps):
@@ -85,26 +79,18 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, parameters):
         'bidirectional': parameters['bidirectional']
     }
 
-    try:
-        model = build_model(**build_model_params)
-        callbacks = prepare_callbacks(model_dir, ticker)
-        history = model.fit(
-            x_train, y_train, epochs=parameters['epochs'], batch_size=parameters['batch_size'],
-            validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
-        )
-        return model, history
-    except Exception as e:
-        logger.error(f"Error during model training: {e}")
-        raise
+    model = build_model(**build_model_params)
+    callbacks = prepare_callbacks(model_dir, ticker)
+    history = model.fit(
+        x_train, y_train, epochs=parameters['epochs'], batch_size=parameters['batch_size'],
+        validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
+    )
+    return model, history
 
 
 def calculate_rmse(model, x_test, y_test):
-    try:
-        y_pred = model.predict(x_test)
-        return np.sqrt(mean_squared_error(y_test, y_pred))
-    except Exception as e:
-        logger.error(f"Error during RMSE calculation: {e}")
-        return None
+    y_pred = model.predict(x_test)
+    return np.sqrt(mean_squared_error(y_test, y_pred))
 
 
 def plot_history(history):
@@ -120,12 +106,14 @@ def main(ticker='BTC-USD', parameters=None):
         parameters = PARAMETERS
 
     trainer = ModelTrainer(ticker)
+    trainer.df.ffill(inplace=True)
     trainer.prepare_data(parameters)
 
     tscv = TimeSeriesSplit(n_splits=(len(trainer.df) - parameters['train_steps']) // parameters['test_steps'])
     best_val_loss = np.inf
     best_model = None
     rmse_list = []
+    history_list = []
 
     for i, (train_index, test_index) in enumerate(tscv.split(trainer.x)):
         percent_complete = (i / tscv.n_splits) * 100
@@ -134,43 +122,36 @@ def main(ticker='BTC-USD', parameters=None):
         x_train, x_test = trainer.x[train_index], trainer.x[test_index]
         y_train, y_test = trainer.y[train_index], trainer.y[test_index]
 
-        try:
-            model, history = train_model(
-                x_train, y_train, x_test, y_test,
-                model_dir=str(trainer.model_path.parent),
-                ticker=trainer.ticker,
-                parameters=parameters
-            )
-            current_val_loss = min(history.history['val_loss'])
-            if current_val_loss < best_val_loss:
-                best_val_loss = current_val_loss
-                best_model = model
+        model, history = train_model(
+            x_train, y_train, x_test, y_test,
+            model_dir=str(trainer.model_path.parent),
+            ticker=trainer.ticker,
+            parameters=parameters
+        )
+        history_list.append(history)  # Aggiungi la storia a history_list
 
-        except Exception as e:
-            logger.error(f"Error during training fold {i + 1}: {e}")
+        current_val_loss = min(history.history['val_loss'])
+        if current_val_loss < best_val_loss:
+            best_val_loss = current_val_loss
+            best_model = model
 
-    # Save the best model after all folds are completed
     if best_model:
         best_model_path = BASE_DIR / trainer.model_path
         best_model.save(best_model_path)
         logger.info(f"Best model saved at {best_model_path}")
 
-    # Calculate RMSE using the best model for each test split
     for _, test_index in tscv.split(trainer.x):
         x_test = trainer.x[test_index]
         y_test = trainer.y[test_index]
-        try:
-            rmse = calculate_rmse(best_model, x_test, y_test)
-            if rmse is not None:
-                rmse_list.append(rmse)
-        except Exception as e:
-            logger.error(f"Error during RMSE calculation: {e}")
+        rmse = calculate_rmse(best_model, x_test, y_test)
+        if rmse is not None:
+            rmse_list.append(rmse)
 
     if rmse_list:
         average_rmse = np.mean(rmse_list)
         logger.info(f"Average RMSE across all folds: {average_rmse:.2f}")
 
-    plot_history(history)
+    plot_history(np.mean(history_list, axis=0))
 
 
 if __name__ == '__main__':
