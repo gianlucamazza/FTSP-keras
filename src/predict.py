@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from sklearn.preprocessing import MinMaxScaler
 from technical_indicators import calculate_technical_indicators
-from config import COLUMN_SETS
+from config import COLUMN_SETS, CLOSE
 from keras.models import load_model
 from logger import setup_logger
 from pathlib import Path
@@ -81,9 +81,13 @@ class DataPreparator:
         df = arrange_and_fill(df)
         df = calculate_technical_indicators(df)
         df.to_csv(self.processed_data_path, index=True)
+
+        df_support = df[[CLOSE]].copy()
+        df_support.index.name = 'Date'
+
         df_scaled, feature_scaler, close_scaler = self.process_and_save_features(df)
         df_scaled.to_csv(self.scaled_data_path, index=True)
-        return df_scaled, feature_scaler, close_scaler
+        return df_scaled, feature_scaler, close_scaler, df_support
 
 
 class ModelPredictor:
@@ -147,7 +151,7 @@ def plot_predictions(predictions, actual_values, historical_dates, future_dates,
 def main(ticker='BTC-USD'):
     try:
         data_preparator = DataPreparator(ticker)
-        df_scaled, feature_scaler, close_scaler = data_preparator.prepare_data()
+        df_scaled, feature_scaler, close_scaler, df_support = data_preparator.prepare_data()
 
         model_predictor = ModelPredictor(ticker)
         predictions_scaled = model_predictor.predict(df_scaled)
