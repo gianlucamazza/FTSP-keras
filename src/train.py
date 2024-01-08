@@ -8,7 +8,7 @@ from sklearn.model_selection import TimeSeriesSplit
 import matplotlib.pyplot as plt
 from model import build_model, prepare_callbacks
 import logger as logger
-from data_preparation import COLUMN_SETS
+from config import COLUMN_SETS
 
 PARAMETERS = {
     'neurons': 100,
@@ -39,6 +39,8 @@ class ModelTrainer:
         self.model_path = Path(BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}.keras')
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
+        self.x = None
+        self.y = None
 
     def load_scaler(self):
         return joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl')
@@ -93,14 +95,6 @@ def calculate_rmse(model, x_test, y_test):
     return np.sqrt(mean_squared_error(y_test, y_pred))
 
 
-def plot_history(history):
-    plt.figure(figsize=(12, 6))
-    plt.plot(history.history['loss'], label='Train')
-    plt.plot(history.history['val_loss'], label='Validation')
-    plt.legend()
-    plt.show()
-
-
 def main(ticker='BTC-USD', parameters=None):
     if parameters is None:
         parameters = PARAMETERS
@@ -109,7 +103,8 @@ def main(ticker='BTC-USD', parameters=None):
     trainer.df.ffill(inplace=True)
     trainer.prepare_data(parameters)
 
-    tscv = TimeSeriesSplit(n_splits=(len(trainer.df) - parameters['train_steps']) // parameters['test_steps'])
+    n_splits = max(1, (len(trainer.df) - parameters['train_steps']) // parameters['test_steps'])
+    tscv = TimeSeriesSplit(n_splits=n_splits)
     best_val_loss = np.inf
     best_model = None
     rmse_list = []
@@ -150,8 +145,6 @@ def main(ticker='BTC-USD', parameters=None):
     if rmse_list:
         average_rmse = np.mean(rmse_list)
         logger.info(f"Average RMSE across all folds: {average_rmse:.2f}")
-
-    plot_history(np.mean(history_list, axis=0))
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 # feature_engineering.py
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from config import COLUMN_SETS
+from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 import joblib
 from pathlib import Path
@@ -11,14 +11,20 @@ BASE_DIR = Path(__file__).parent.parent
 logger = logger.setup_logger('feature_engineering_logger', BASE_DIR / 'logs', 'feature_engineering.log')
 
 
+def validate_input_data(df, required_columns):
+    missing_columns = set(required_columns) - set(df.columns)
+    if missing_columns:
+        error_message = f"Missing columns in input data: {missing_columns}"
+        logger.error(error_message)
+        raise ValueError(error_message)
+
+
 def check_data(df, step_description):
     logger.info(f"Data after {step_description}: shape = {df.shape}")
     logger.info(f"Sample data:\n{df.head()}")
 
 
 def clean_data(df):
-    # Fill or drop NaN values based on your data characteristics
-    # Example: df.fillna(method='ffill', inplace=True)
     df.dropna(inplace=True)
     logger.info("Data cleaned. NaN values handled.")
 
@@ -33,7 +39,7 @@ def normalize_features(df, columns_to_normalize):
 def normalize_close(df):
     logger.info("Normalizing 'Close' column.")
     scaler = MinMaxScaler()
-    df['Close'] = scaler.fit_transform(df[['Close']])
+    df[CLOSE] = scaler.fit_transform(df[[CLOSE]])
     return scaler
 
 
@@ -50,12 +56,19 @@ def process_and_save_features(df, ticker):
     df = calculate_technical_indicators(df)
     check_data(df, "calculating technical indicators")
 
+    required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
+    validate_input_data(df, required_columns)
+
     clean_data(df)
 
-    columns_to_normalize = COLUMN_SETS['to_scale']
+    columns_to_normalize = [col for col in df.columns if col != CLOSE]
     df, feature_scaler = normalize_features(df, columns_to_normalize)
     check_data(df, "normalizing features")
 
+    close_scaler = normalize_close(df)
+    check_data(df, "normalizing 'Close' column")
+
+    save_scaler(close_scaler, ticker, scaler_type='close')
     save_scaler(feature_scaler, ticker, scaler_type='feature')
 
     scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
