@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 from sklearn.preprocessing import MinMaxScaler
 from technical_indicators import calculate_technical_indicators
 from config import COLUMN_SETS, CLOSE
@@ -90,6 +89,17 @@ class DataPreparator:
         return df_scaled, feature_scaler, close_scaler, df_support
 
 
+def prepare_data_for_plotting(predictions, actual_values, historical_dates, future_dates):
+    """Prepares data for plotting by creating a combined DataFrame."""
+    all_dates = historical_dates.tolist() + future_dates.tolist()
+    plot_df = pd.DataFrame(index=all_dates)
+
+    plot_df['Actual'] = np.concatenate((actual_values, [np.nan] * len(future_dates)))
+    plot_df['Predicted'] = np.concatenate(([np.nan] * len(historical_dates), predictions.flatten()))
+
+    return plot_df
+
+
 class ModelPredictor:
     def __init__(self, ticker):
         self.model_path = BASE_DIR / f'models/model_{ticker}.keras'
@@ -107,7 +117,8 @@ class ModelPredictor:
         df_windowed = create_windowed_data(df_scaled, self.train_steps)
         try:
             predictions = self.model.predict(df_windowed)
-            assert len(predictions) == len(df_windowed), "The number of predictions does not match the length of the dataframe"
+            assert len(predictions) == len(
+                df_windowed), "The number of predictions does not match the length of the dataframe"
         except Exception as e:
             logger.error(f"Prediction failed: {e}")
             raise
@@ -117,17 +128,6 @@ class ModelPredictor:
         """Inverse scales the predictions to the original scale."""
         predictions = predictions.reshape(-1, 1)
         return self.close_scaler.inverse_transform(predictions)
-
-
-    def prepare_data_for_plotting(self, predictions, actual_values, historical_dates, future_dates):
-        """Prepares data for plotting by creating a combined DataFrame."""
-        all_dates = historical_dates.tolist() + future_dates.tolist()
-        plot_df = pd.DataFrame(index=all_dates)
-
-        plot_df['Actual'] = np.concatenate((actual_values, [np.nan] * len(future_dates)))
-        plot_df['Predicted'] = np.concatenate(([np.nan] * len(historical_dates), predictions.flatten()))
-
-        return plot_df
 
 
 def main(ticker='BTC-USD'):
@@ -150,7 +150,7 @@ def main(ticker='BTC-USD'):
 
         future_dates = pd.date_range(start=last_historical_date + timedelta(days=1), periods=len(predictions_scaled))
 
-        plot_df = model_predictor.prepare_data_for_plotting(
+        plot_df = prepare_data_for_plotting(
             predictions,
             df['Close'].values[-len(historical_dates):],
             historical_dates,
