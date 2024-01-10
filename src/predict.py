@@ -107,6 +107,7 @@ class ModelPredictor:
         df_windowed = create_windowed_data(df_scaled, self.train_steps)
         try:
             predictions = self.model.predict(df_windowed)
+            assert len(predictions) == len(df_windowed), "The number of predictions does not match the length of the dataframe"
         except Exception as e:
             logger.error(f"Prediction failed: {e}")
             raise
@@ -116,6 +117,17 @@ class ModelPredictor:
         """Inverse scales the predictions to the original scale."""
         predictions = predictions.reshape(-1, 1)
         return self.close_scaler.inverse_transform(predictions)
+
+
+    def prepare_data_for_plotting(self, predictions, actual_values, historical_dates, future_dates):
+        """Prepares data for plotting by creating a combined DataFrame."""
+        all_dates = historical_dates.tolist() + future_dates.tolist()
+        plot_df = pd.DataFrame(index=all_dates)
+
+        plot_df['Actual'] = np.concatenate((actual_values, [np.nan] * len(future_dates)))
+        plot_df['Predicted'] = np.concatenate(([np.nan] * len(historical_dates), predictions.flatten()))
+
+        return plot_df
 
 
 def plot_predictions(predictions, actual_values, historical_dates, future_dates, ticker, save_path):
@@ -166,22 +178,26 @@ def main(ticker='BTC-USD'):
         logger.info(f"Historical data starts on: {historical_dates[0]}")
         logger.info(f"Historical data ends on: {last_historical_date}")
 
-        future_dates = pd.date_range(start=last_historical_date + timedelta(days=1), periods=len(predictions))
+        future_dates = pd.date_range(start=last_historical_date + timedelta(days=1), periods=len(predictions_scaled))
+
+        plot_df = model_predictor.prepare_data_for_plotting(
+            predictions,
+            df['Close'].values[-len(historical_dates):],
+            historical_dates,
+            future_dates
+        )
 
         # Log the start and end of the future dates
         logger.info(f"Predictions start on: {future_dates[0]}")
         logger.info(f"Predictions end on: {future_dates[-1]}")
 
-        actual_values_segment = df['Close'].values[-len(predictions):]
+        plt.figure(figsize=(15, 7))
+        plt.plot(plot_df.index, plot_df['Actual'], label='Actual', color='blue')
+        plt.plot(plot_df.index, plot_df['Predicted'], label='Predicted', linestyle='--', color='orange')
 
-        plot_predictions(
-            predictions,
-            actual_values_segment,
-            historical_dates,
-            future_dates,
-            ticker,
-            BASE_DIR / f'predictions/predictions_{ticker}.png'
-        )
+        plt.legend()
+        plt.show()
+
     except Exception as e:
         logger.error(f"Error in main: {e}")
 
