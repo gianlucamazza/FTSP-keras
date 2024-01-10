@@ -130,36 +130,6 @@ class ModelPredictor:
         return plot_df
 
 
-def plot_predictions(predictions, actual_values, historical_dates, future_dates, ticker, save_path):
-    """Plots the predictions against actual values."""
-    plt.figure(figsize=(15, 7))
-
-    # Ensure that predictions are flattened to 1D if they are not already
-    predictions = predictions.flatten()
-
-    # Combine historical and future dates for a continuous date range
-    combined_dates = historical_dates.tolist() + future_dates.tolist()
-
-    # Ensure that only historical actual values are plotted
-    actual_values_full = np.concatenate((actual_values, [np.nan]*len(predictions)))
-
-    # Ensure that predictions start after the last actual value
-    predictions_full = np.concatenate(([np.nan]*len(actual_values), predictions))
-
-    plt.plot(combined_dates, actual_values_full, label='Actual', color='blue')
-    plt.plot(combined_dates, predictions_full, label='Predicted', linestyle='--', color='orange')
-
-    plt.title(f'{ticker} Price Predictions')
-    plt.xlabel('Time')
-    plt.ylabel('Price')
-    plt.legend()
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=15))
-    plt.gcf().autofmt_xdate()  # Rotate date labels for better readability
-    plt.savefig(save_path)
-    plt.show()
-
-
 def main(ticker='BTC-USD'):
     try:
         data_preparator = DataPreparator(ticker)
