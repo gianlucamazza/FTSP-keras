@@ -1,9 +1,14 @@
+import sys
 from pathlib import Path
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
+
+# Add the project directory to the sys.path
+project_dir = Path(__file__).resolve().parent
+sys.path.append(str(project_dir))
 
 import logger as logger
 from config import COLUMN_SETS
@@ -79,7 +84,7 @@ def plot_price_history(dates, prices, ticker):
     plt.show()
 
 
-def main(ticker='BTC-USD', start_date=None, end_date=None):
+def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
     logger.info(f"Starting data preparation for {ticker}.")
     raw_data_path = f'data/raw_data_{ticker}.csv'
     processed_data_path = f'data/processed_data_{ticker}.csv'
@@ -88,7 +93,9 @@ def main(ticker='BTC-USD', start_date=None, end_date=None):
     logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
     save_df_to_csv(df, processed_data_path)
     logger.info(f'Finished data preparation for {ticker}.')
+    if worker and not worker._is_running:
+        return
 
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD', start_date='2014-01-01', end_date=None)
+    main(ticker='BTC-USD', start_date='2023-01-01', end_date=None)

@@ -203,7 +203,11 @@ def main(ticker='BTC-USD'):
         plt.plot(plot_df.index, plot_df['Predicted'], label='Predicted', linestyle='--', color='orange')
 
         plt.legend()
-        plt.show()
+        plt.title(f'{ticker} Close Price Prediction')
+        plt.xlabel('Date')
+        plt.ylabel('Close Price')
+        plt.grid()
+        plt.savefig(BASE_DIR / f'predictions/{ticker}_prediction.png')
 
     except Exception as e:
         logger.error(f"Error in main: {e}")

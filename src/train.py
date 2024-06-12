@@ -1,11 +1,15 @@
-# train.py
+import sys
 import pandas as pd
 import numpy as np
 import joblib
 from pathlib import Path
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit
-import matplotlib.pyplot as plt
+
+# Add the project directory to the sys.path
+project_dir = Path(__file__).resolve().parent
+sys.path.append(str(project_dir))
+
 from model import build_model, prepare_callbacks
 import logger as logger
 from config import COLUMN_SETS
@@ -32,24 +36,26 @@ class ModelTrainer:
     MODELS_FOLDER = 'models'
 
     def __init__(self, ticker='BTC-USD'):
-        self.x = None
-        self.y = None
         self.ticker = ticker
-        self.data_path = Path(BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv')
-        self.model_path = Path(BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}.keras')
+        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
-        self.x = None
-        self.y = None
+        self.x, self.y = None, None
 
     def load_scaler(self):
-        return joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl')
+        try:
+            return joblib.load(BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl')
+        except FileNotFoundError as e:
+            logger.error(f"Scaler file not found: {e}")
+            raise
 
     def load_dataset(self):
         try:
-            return pd.read_csv(self.data_path, index_col='Date')
+            df = pd.read_csv(self.data_path, index_col='Date')
+            df.ffill(inplace=True)
+            return df
         except Exception as e:
-            logger.error(f"Error loading dataset: {e}")
+            logger.error(f"Error loading dataset: {e}", exc_info=True)
             raise
 
     def prepare_data(self, parameters):
@@ -60,7 +66,6 @@ class ModelTrainer:
         scaler_columns = COLUMN_SETS['to_scale']
         self.df = self.df.reindex(columns=scaler_columns)
         self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
-
         self.x, self.y = create_windowed_data(self.df[scaler_columns].values, parameters['train_steps'])
 
 
@@ -72,21 +77,28 @@ def create_windowed_data(df, steps):
     return np.array(x), np.array(y)
 
 
-def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, parameters):
-    build_model_params = {
-        'input_shape': (parameters['train_steps'], len(COLUMN_SETS['to_scale'])),
-        'neurons': parameters['neurons'],
-        'dropout': parameters['dropout'],
-        'additional_layers': parameters['additional_layers'],
-        'bidirectional': parameters['bidirectional']
-    }
-
-    model = build_model(**build_model_params)
-    callbacks = prepare_callbacks(model_dir, ticker)
-    history = model.fit(
-        x_train, y_train, epochs=parameters['epochs'], batch_size=parameters['batch_size'],
-        validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
+def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, parameters, worker=None):
+    model = build_model(
+        input_shape=(parameters['train_steps'], len(COLUMN_SETS['to_scale'])),
+        neurons=parameters['neurons'],
+        dropout=parameters['dropout'],
+        additional_layers=parameters['additional_layers'],
+        bidirectional=parameters['bidirectional']
     )
+    callbacks = prepare_callbacks(model_dir, f"{ticker}_fold_{fold_index}")
+
+    for epoch in range(parameters['epochs']):
+        if worker is not None and not worker._is_running:
+            logger.info("Training stopped early.")
+            return None
+        history = model.fit(
+            x_train, y_train, epochs=1, batch_size=parameters['batch_size'],
+            validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
+        )
+    
+    model_path = Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"
+    model.save(model_path)
+    logger.info(f"Fold {fold_index} model saved at {model_path}")
     return model, history
 
 
@@ -95,22 +107,26 @@ def calculate_rmse(model, x_test, y_test):
     return np.sqrt(mean_squared_error(y_test, y_pred))
 
 
-def main(ticker='BTC-USD', parameters=None):
+def main(ticker='BTC-USD', worker=None, parameters=None):
     if parameters is None:
         parameters = PARAMETERS
 
     trainer = ModelTrainer(ticker)
-    trainer.df.ffill(inplace=True)
     trainer.prepare_data(parameters)
 
     n_splits = max(1, (len(trainer.df) - parameters['train_steps']) // parameters['test_steps'])
     tscv = TimeSeriesSplit(n_splits=n_splits)
+
+    logger.info(f"Number of splits: {n_splits}")
+
     best_val_loss = np.inf
     best_model = None
     rmse_list = []
-    history_list = []
 
     for i, (train_index, test_index) in enumerate(tscv.split(trainer.x)):
+        if worker is not None and not worker._is_running:
+            logger.info("Training stopped early.")
+            return
         percent_complete = (i / tscv.n_splits) * 100
         logger.info(f"Training fold {i + 1}/{tscv.n_splits} ({percent_complete:.2f}% complete)")
 
@@ -119,11 +135,15 @@ def main(ticker='BTC-USD', parameters=None):
 
         model, history = train_model(
             x_train, y_train, x_test, y_test,
-            model_dir=str(trainer.model_path.parent),
+            model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
             ticker=trainer.ticker,
-            parameters=parameters
+            fold_index=i,
+            parameters=parameters,
+            worker=worker
         )
-        history_list.append(history)  # Aggiungi la storia a history_list
+
+        if model is None:
+            return
 
         current_val_loss = min(history.history['val_loss'])
         if current_val_loss < best_val_loss:
@@ -131,11 +151,14 @@ def main(ticker='BTC-USD', parameters=None):
             best_model = model
 
     if best_model:
-        best_model_path = BASE_DIR / trainer.model_path
+        best_model_path = BASE_DIR / trainer.MODELS_FOLDER / f"model_{trainer.ticker}_best.keras"
         best_model.save(best_model_path)
         logger.info(f"Best model saved at {best_model_path}")
 
     for _, test_index in tscv.split(trainer.x):
+        if worker is not None and not worker._is_running:
+            logger.info("Evaluation stopped early.")
+            return
         x_test = trainer.x[test_index]
         y_test = trainer.y[test_index]
         rmse = calculate_rmse(best_model, x_test, y_test)

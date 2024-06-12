@@ -1,0 +1,55 @@
+2024-06-12 14:06:44,091 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:06:44,091 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:07:01,202 - train_logger - INFO - Fold 0 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_0.keras
+2024-06-12 14:07:01,203 - train_logger - INFO - Training fold 2/8 (12.50% complete)
+2024-06-12 14:07:25,059 - train_logger - INFO - Fold 1 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_1.keras
+2024-06-12 14:07:25,060 - train_logger - INFO - Training fold 3/8 (25.00% complete)
+2024-06-12 14:08:00,748 - train_logger - INFO - Fold 2 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_2.keras
+2024-06-12 14:08:00,749 - train_logger - INFO - Training fold 4/8 (37.50% complete)
+2024-06-12 14:08:50,648 - train_logger - INFO - Fold 3 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_3.keras
+2024-06-12 14:08:50,648 - train_logger - INFO - Training fold 5/8 (50.00% complete)
+2024-06-12 14:10:16,645 - train_logger - INFO - Fold 4 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_4.keras
+2024-06-12 14:10:16,646 - train_logger - INFO - Training fold 6/8 (62.50% complete)
+2024-06-12 14:11:23,046 - train_logger - INFO - Fold 5 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_5.keras
+2024-06-12 14:11:23,047 - train_logger - INFO - Training fold 7/8 (75.00% complete)
+2024-06-12 14:12:13,838 - train_logger - INFO - Fold 6 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_6.keras
+2024-06-12 14:12:13,838 - train_logger - INFO - Training fold 8/8 (87.50% complete)
+2024-06-12 14:13:33,094 - train_logger - INFO - Fold 7 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_7.keras
+2024-06-12 14:13:33,447 - train_logger - INFO - Best model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_best.keras
+2024-06-12 14:13:40,084 - train_logger - INFO - Average RMSE across all folds: 0.02
+2024-06-12 14:23:00,195 - train_logger - ERROR - Scaler file not found: [Errno 2] No such file or directory: '/home/gianluca/Workspace/btc-prediction-lstm/scalers/feature_scaler_.pkl'
+2024-06-12 14:23:12,899 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:23:12,899 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:23:30,492 - train_logger - INFO - Fold 0 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_0.keras
+2024-06-12 14:23:30,494 - train_logger - INFO - Training fold 2/8 (12.50% complete)
+2024-06-12 14:24:55,016 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:24:55,019 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:32:24,627 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:32:24,630 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:32:42,225 - train_logger - INFO - Fold 0 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_0.keras
+2024-06-12 14:32:42,226 - train_logger - INFO - Training fold 2/8 (12.50% complete)
+2024-06-12 14:33:20,519 - train_logger - INFO - Fold 1 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_1.keras
+2024-06-12 14:33:20,521 - train_logger - INFO - Training fold 3/8 (25.00% complete)
+2024-06-12 14:37:16,314 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:37:16,316 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:37:51,188 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:37:51,191 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:40:50,666 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:40:50,670 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:41:21,136 - train_logger - INFO - Fold 0 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_0.keras
+2024-06-12 14:41:21,139 - train_logger - INFO - Training fold 2/8 (12.50% complete)
+2024-06-12 14:42:00,316 - train_logger - INFO - Fold 1 model saved at /home/gianluca/Workspace/btc-prediction-lstm/models/model_BTC-USD_fold_1.keras
+2024-06-12 14:42:56,067 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:42:56,070 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:47:52,355 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:47:52,356 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:48:15,900 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:48:15,904 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:50:55,956 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:50:55,960 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:51:08,279 - train_logger - INFO - Training stopped early.
+2024-06-12 14:53:44,478 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:53:44,480 - train_logger - INFO - Training fold 1/8 (0.00% complete)
+2024-06-12 14:53:58,183 - train_logger - INFO - Training stopped early.
+2024-06-12 14:55:22,253 - train_logger - INFO - Number of splits: 8
+2024-06-12 14:55:22,257 - train_logger - INFO - Training fold 1/8 (0.00% complete)

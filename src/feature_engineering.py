@@ -1,10 +1,16 @@
 # feature_engineering.py
+import sys
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 import joblib
 from pathlib import Path
+
+# Add the project directory to the sys.path
+project_dir = Path(__file__).resolve().parent
+sys.path.append(str(project_dir))
+
 import logger as logger
 
 BASE_DIR = Path(__file__).parent.parent
@@ -76,7 +82,7 @@ def process_and_save_features(df, ticker):
     logger.info(f"Scaled data saved at {scaled_data_path}")
 
 
-def main(ticker='BTC-USD'):
+def main(ticker='BTC-USD', worker=None):
     logger.info(f"Starting feature engineering for {ticker}.")
     file_path = Path(BASE_DIR / f'data/processed_data_{ticker}.csv')
     if not file_path.exists():
@@ -85,7 +91,8 @@ def main(ticker='BTC-USD'):
     df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
     process_and_save_features(df, ticker)
     logger.info(f"Feature engineering completed for {ticker}.")
-
+    if worker and not worker._is_running:
+        return
 
 if __name__ == '__main__':
     main(ticker='BTC-USD')

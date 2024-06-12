@@ -1,0 +1,36 @@
+2024-06-12 14:06:35,547 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 14:06:35,551 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 14:06:35,556 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (528, 20)
+2024-06-12 14:06:35,566 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close     Adj Close       Volume  MA50  MA200   Returns  Volatility  MA20  Upper  Lower         RSI  MACD  Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                                                                                                                                                                                                          
+2023-01-01  16547.914062   NaN  NaN  16625.080078  16625.080078   9244361700   NaN    NaN       NaN         NaN   NaN    NaN    NaN    0.000000   NaN    NaN              NaN              NaN            NaN              NaN
+2023-01-02  16625.509766   NaN  NaN  16688.470703  16688.470703  12097775227   NaN    NaN  0.003813         NaN   NaN    NaN    NaN  100.000000   NaN    NaN              NaN              NaN            NaN              NaN
+2023-01-03  16688.847656   NaN  NaN  16679.857422  16679.857422  13903079207   NaN    NaN -0.000516         NaN   NaN    NaN    NaN   88.037758   NaN    NaN              NaN              NaN            NaN              NaN
+2023-01-04  16680.205078   NaN  NaN  16863.238281  16863.238281  18421743322   NaN    NaN  0.010994         NaN   NaN    NaN    NaN   96.627332   NaN    NaN              NaN              NaN            NaN              NaN
+2023-01-05  16863.472656   NaN  NaN  16836.736328  16836.736328  13692758566   NaN    NaN -0.001572         NaN   NaN    NaN    NaN   87.542785   NaN    NaN              NaN              NaN            NaN              NaN
+2024-06-12 14:06:35,567 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 14:06:35,567 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 14:06:35,570 - feature_engineering_logger - INFO - Data after normalizing features: shape = (329, 20)
+2024-06-12 14:06:35,580 - feature_engineering_logger - INFO - Sample data:
+                Open      High  Low         Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                                                                                                                                                                                                                          
+2023-07-19  0.098112  0.077435  0.0  29913.923828   0.099148  0.069737  0.056382  0.000000  0.457587    0.174649  0.101379  0.101378  0.101379  0.412059  0.268892  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-20  0.099222  0.077435  0.0  29792.015625   0.096604  0.095659  0.057634  0.002197  0.425439    0.174938  0.100583  0.100583  0.100583  0.468353  0.261018  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-21  0.096924  0.077435  0.0  29908.744141   0.099040  0.057879  0.059137  0.004402  0.468292    0.175035  0.099792  0.099792  0.099792  0.421264  0.255794  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-22  0.099085  0.077435  0.0  29771.802734   0.096183  0.026081  0.060364  0.006586  0.422741    0.175358  0.098806  0.098806  0.098807  0.410302  0.249879  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-23  0.096611  0.077435  0.0  30084.539062   0.102709  0.039898  0.061828  0.008792  0.503601    0.165169  0.097562  0.097562  0.097562  0.472347  0.248503  0.127531         0.061871         0.051449       0.042534          0.03314
+2024-06-12 14:06:35,580 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 14:06:35,581 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (329, 20)
+2024-06-12 14:06:35,591 - feature_engineering_logger - INFO - Sample data:
+                Open      High  Low     Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                                                                                                                                                                                                                      
+2023-07-19  0.098112  0.077435  0.0  0.099148   0.099148  0.069737  0.056382  0.000000  0.457587    0.174649  0.101379  0.101378  0.101379  0.412059  0.268892  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-20  0.099222  0.077435  0.0  0.096604   0.096604  0.095659  0.057634  0.002197  0.425439    0.174938  0.100583  0.100583  0.100583  0.468353  0.261018  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-21  0.096924  0.077435  0.0  0.099040   0.099040  0.057879  0.059137  0.004402  0.468292    0.175035  0.099792  0.099792  0.099792  0.421264  0.255794  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-22  0.099085  0.077435  0.0  0.096183   0.096183  0.026081  0.060364  0.006586  0.422741    0.175358  0.098806  0.098806  0.098807  0.410302  0.249879  0.127531         0.061871         0.051449       0.042534          0.03314
+2023-07-23  0.096611  0.077435  0.0  0.102709   0.102709  0.039898  0.061828  0.008792  0.503601    0.165169  0.097562  0.097562  0.097562  0.472347  0.248503  0.127531         0.061871         0.051449       0.042534          0.03314
+2024-06-12 14:06:35,592 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/btc-prediction-lstm/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 14:06:35,592 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/btc-prediction-lstm/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 14:06:35,600 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/btc-prediction-lstm/data/scaled_data_BTC-USD.csv
+2024-06-12 14:06:35,600 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
