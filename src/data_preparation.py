@@ -1,22 +1,26 @@
 import sys
 from pathlib import Path
-
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
+import logging
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
 sys.path.append(str(project_dir))
 
-import logger as logger
 from config import COLUMN_SETS
 
-logger = logger.setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
+# Setup logger
+logger = logging.getLogger('data_preparation_logger')
+handler = logging.FileHandler('logs/data_preparation.log')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 BASE_DIR = Path(__file__).parent.parent
-
 
 def download_financial_data(ticker, start_date, end_date):
     logger.info(f"Downloading data for {ticker} from {start_date} to {end_date}.")
@@ -31,7 +35,6 @@ def download_financial_data(ticker, start_date, end_date):
         logger.error(f"Error in downloading data for {ticker}: {e}")
         raise
 
-
 def arrange_and_fill(df, ticker):
     logger.info(f"Arranging and filling missing data for {ticker}.")
     df.reset_index(inplace=True)
@@ -45,28 +48,22 @@ def arrange_and_fill(df, ticker):
     df.bfill(inplace=True)
     return df
 
-
 def save_df_to_csv(df, relative_path):
     file_path = BASE_DIR / relative_path
     logger.info(f"Saving DataFrame to {file_path}.")
     file_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(file_path, index=True)
 
-
 def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
     try:
         df = download_financial_data(ticker, start_date, end_date)
-        if df.empty:
-            error_message = f"No data returned for ticker {ticker}."
-            logger.warning(error_message)
-            raise ValueError(error_message)
         df = arrange_and_fill(df, ticker)
         save_df_to_csv(df, file_path)
         logger.info(f"Data for {ticker} successfully processed and saved.")
         return df
     except Exception as e:
         logger.error(f"Error in processing data for {ticker}: {e}")
-
+        raise
 
 def plot_price_history(dates, prices, ticker):
     logger.info(f"Plotting price history for {ticker}.")
@@ -83,19 +80,19 @@ def plot_price_history(dates, prices, ticker):
     plt.tight_layout()
     plt.show()
 
-
 def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
     logger.info(f"Starting data preparation for {ticker}.")
     raw_data_path = f'data/raw_data_{ticker}.csv'
     processed_data_path = f'data/processed_data_{ticker}.csv'
-    df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
-    logger.info(f"Data for {ticker} successfully processed and saved.")
-    logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
-    save_df_to_csv(df, processed_data_path)
-    logger.info(f'Finished data preparation for {ticker}.')
-    if worker and not worker._is_running:
-        return
-
+    try:
+        df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
+        logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
+        save_df_to_csv(df, processed_data_path)
+        logger.info(f'Finished data preparation for {ticker}.')
+        if worker and not worker._is_running:
+            return
+    except Exception as e:
+        logger.error(f"Failed to complete data preparation for {ticker}: {e}")
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD', start_date='2023-01-01', end_date=None)
+    main(ticker='BTC-USD', start_date='2023-01-01', end_date=None, worker=None)

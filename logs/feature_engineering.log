@@ -1,36 +1,246 @@
-2024-06-12 14:06:35,547 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
-2024-06-12 14:06:35,551 - feature_engineering_logger - INFO - Processing features for BTC-USD.
-2024-06-12 14:06:35,556 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (528, 20)
-2024-06-12 14:06:35,566 - feature_engineering_logger - INFO - Sample data:
-                    Open  High  Low         Close     Adj Close       Volume  MA50  MA200   Returns  Volatility  MA20  Upper  Lower         RSI  MACD  Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
-Date                                                                                                                                                                                                                          
-2023-01-01  16547.914062   NaN  NaN  16625.080078  16625.080078   9244361700   NaN    NaN       NaN         NaN   NaN    NaN    NaN    0.000000   NaN    NaN              NaN              NaN            NaN              NaN
-2023-01-02  16625.509766   NaN  NaN  16688.470703  16688.470703  12097775227   NaN    NaN  0.003813         NaN   NaN    NaN    NaN  100.000000   NaN    NaN              NaN              NaN            NaN              NaN
-2023-01-03  16688.847656   NaN  NaN  16679.857422  16679.857422  13903079207   NaN    NaN -0.000516         NaN   NaN    NaN    NaN   88.037758   NaN    NaN              NaN              NaN            NaN              NaN
-2023-01-04  16680.205078   NaN  NaN  16863.238281  16863.238281  18421743322   NaN    NaN  0.010994         NaN   NaN    NaN    NaN   96.627332   NaN    NaN              NaN              NaN            NaN              NaN
-2023-01-05  16863.472656   NaN  NaN  16836.736328  16836.736328  13692758566   NaN    NaN -0.001572         NaN   NaN    NaN    NaN   87.542785   NaN    NaN              NaN              NaN            NaN              NaN
-2024-06-12 14:06:35,567 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
-2024-06-12 14:06:35,567 - feature_engineering_logger - INFO - Normalizing features.
-2024-06-12 14:06:35,570 - feature_engineering_logger - INFO - Data after normalizing features: shape = (329, 20)
-2024-06-12 14:06:35,580 - feature_engineering_logger - INFO - Sample data:
-                Open      High  Low         Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
-Date                                                                                                                                                                                                                                          
-2023-07-19  0.098112  0.077435  0.0  29913.923828   0.099148  0.069737  0.056382  0.000000  0.457587    0.174649  0.101379  0.101378  0.101379  0.412059  0.268892  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-20  0.099222  0.077435  0.0  29792.015625   0.096604  0.095659  0.057634  0.002197  0.425439    0.174938  0.100583  0.100583  0.100583  0.468353  0.261018  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-21  0.096924  0.077435  0.0  29908.744141   0.099040  0.057879  0.059137  0.004402  0.468292    0.175035  0.099792  0.099792  0.099792  0.421264  0.255794  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-22  0.099085  0.077435  0.0  29771.802734   0.096183  0.026081  0.060364  0.006586  0.422741    0.175358  0.098806  0.098806  0.098807  0.410302  0.249879  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-23  0.096611  0.077435  0.0  30084.539062   0.102709  0.039898  0.061828  0.008792  0.503601    0.165169  0.097562  0.097562  0.097562  0.472347  0.248503  0.127531         0.061871         0.051449       0.042534          0.03314
-2024-06-12 14:06:35,580 - feature_engineering_logger - INFO - Normalizing 'Close' column.
-2024-06-12 14:06:35,581 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (329, 20)
-2024-06-12 14:06:35,591 - feature_engineering_logger - INFO - Sample data:
-                Open      High  Low     Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+2024-06-12 18:41:44,475 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 18:41:44,502 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 18:41:44,532 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 18:41:44,579 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close     Adj Close       Volume  MA50  MA200   Returns  Volatility  MA20  Upper  Lower        RSI  MACD  Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                                                                                                                                                                                                         
+2022-06-13  26737.578125   NaN  NaN  22487.388672  22487.388672  68204556440   NaN    NaN       NaN         NaN   NaN    NaN    NaN   0.000000   NaN    NaN              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  22206.792969  50913575242   NaN    NaN -0.012478         NaN   NaN    NaN    NaN   0.000000   NaN    NaN              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  22572.839844  54912007015   NaN    NaN  0.016484         NaN   NaN    NaN    NaN  56.607295   NaN    NaN              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  20381.650391  31183975654   NaN    NaN -0.097072         NaN   NaN    NaN    NaN  12.898821   NaN    NaN              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  20471.482422  27132421514   NaN    NaN  0.004407         NaN   NaN    NaN    NaN  15.571421   NaN    NaN              NaN              NaN            NaN              NaN
+2024-06-12 18:41:44,583 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 18:41:44,583 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 18:41:44,597 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 18:41:44,653 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
 Date                                                                                                                                                                                                                                      
-2023-07-19  0.098112  0.077435  0.0  0.099148   0.099148  0.069737  0.056382  0.000000  0.457587    0.174649  0.101379  0.101378  0.101379  0.412059  0.268892  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-20  0.099222  0.077435  0.0  0.096604   0.096604  0.095659  0.057634  0.002197  0.425439    0.174938  0.100583  0.100583  0.100583  0.468353  0.261018  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-21  0.096924  0.077435  0.0  0.099040   0.099040  0.057879  0.059137  0.004402  0.468292    0.175035  0.099792  0.099792  0.099792  0.421264  0.255794  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-22  0.099085  0.077435  0.0  0.096183   0.096183  0.026081  0.060364  0.006586  0.422741    0.175358  0.098806  0.098806  0.098807  0.410302  0.249879  0.127531         0.061871         0.051449       0.042534          0.03314
-2023-07-23  0.096611  0.077435  0.0  0.102709   0.102709  0.039898  0.061828  0.008792  0.503601    0.165169  0.097562  0.097562  0.097562  0.472347  0.248503  0.127531         0.061871         0.051449       0.042534          0.03314
-2024-06-12 14:06:35,592 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/btc-prediction-lstm/scalers/close_scaler_BTC-USD.pkl
-2024-06-12 14:06:35,592 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/btc-prediction-lstm/scalers/feature_scaler_BTC-USD.pkl
-2024-06-12 14:06:35,600 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/btc-prediction-lstm/data/scaled_data_BTC-USD.csv
-2024-06-12 14:06:35,600 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2022-12-29  0.000078   0.0  0.0  16642.341797   0.001678  0.093782  0.000648  0.007639  0.476361    0.256971  0.004193  0.004193  0.004193  0.306980  0.212295  0.012768              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938   0.000974  0.108729  0.000260  0.006827  0.434481    0.256961  0.003691  0.003691  0.003691  0.454632  0.211512  0.012768              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094   0.000000  0.060613  0.000069  0.006047  0.429499    0.257095  0.003160  0.003160  0.003160  0.387257  0.210492  0.012768              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078   0.001372  0.040147  0.000000  0.005226  0.472422    0.256392  0.002605  0.002605  0.002605  0.425986  0.210779  0.012768              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703   0.002494  0.069421  0.000132  0.004717  0.467728    0.203832  0.001562  0.001562  0.001562  0.562594  0.211927  0.012768              0.0              0.0            0.0              0.0
+2024-06-12 18:41:44,653 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 18:41:44,658 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 18:41:44,713 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  Adj Close    Volume      MA50     MA200   Returns  Volatility      MA20     Upper     Lower       RSI      MACD     Range  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                                                                                                                                                                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678   0.001678  0.093782  0.000648  0.007639  0.476361    0.256971  0.004193  0.004193  0.004193  0.306980  0.212295  0.012768              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974   0.000974  0.108729  0.000260  0.006827  0.434481    0.256961  0.003691  0.003691  0.003691  0.454632  0.211512  0.012768              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000   0.000000  0.060613  0.000069  0.006047  0.429499    0.257095  0.003160  0.003160  0.003160  0.387257  0.210492  0.012768              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372   0.001372  0.040147  0.000000  0.005226  0.472422    0.256392  0.002605  0.002605  0.002605  0.425986  0.210779  0.012768              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494   0.002494  0.069421  0.000132  0.004717  0.467728    0.203832  0.001562  0.001562  0.001562  0.562594  0.211927  0.012768              0.0              0.0            0.0              0.0
+2024-06-12 18:41:44,717 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 18:41:44,726 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 18:41:44,770 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 18:41:44,770 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2024-06-12 19:29:35,831 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 19:29:35,870 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 19:29:35,970 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 19:29:36,095 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                               ...                                                                  
+2022-06-13  26737.578125   NaN  NaN  22487.388672  ...              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  ...              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  ...              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  ...              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  ...              NaN              NaN            NaN              NaN
+
+[5 rows x 20 columns]
+2024-06-12 19:29:36,101 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 19:29:36,101 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 19:29:36,120 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 19:29:36,179 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                           ...                                                                  
+2022-12-29  0.000078   0.0  0.0  16642.341797  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:29:36,180 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 19:29:36,191 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 19:29:36,249 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                       ...                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:29:36,258 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 19:29:36,263 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 19:29:36,308 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 19:29:36,309 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2024-06-12 19:36:15,479 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 19:36:15,523 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 19:36:15,653 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 19:36:15,803 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                               ...                                                                  
+2022-06-13  26737.578125   NaN  NaN  22487.388672  ...              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  ...              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  ...              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  ...              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  ...              NaN              NaN            NaN              NaN
+
+[5 rows x 20 columns]
+2024-06-12 19:36:15,809 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 19:36:15,811 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 19:36:15,828 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 19:36:15,886 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                           ...                                                                  
+2022-12-29  0.000078   0.0  0.0  16642.341797  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:36:15,886 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 19:36:15,899 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 19:36:15,952 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                       ...                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:36:15,957 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 19:36:15,962 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 19:36:16,008 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 19:36:16,008 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2024-06-12 19:40:18,574 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 19:40:18,598 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 19:40:18,653 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 19:40:18,720 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                               ...                                                                  
+2022-06-13  26737.578125   NaN  NaN  22487.388672  ...              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  ...              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  ...              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  ...              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  ...              NaN              NaN            NaN              NaN
+
+[5 rows x 20 columns]
+2024-06-12 19:40:18,725 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 19:40:18,725 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 19:40:18,739 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 19:40:18,777 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                           ...                                                                  
+2022-12-29  0.000078   0.0  0.0  16642.341797  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:40:18,777 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 19:40:18,785 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 19:40:18,823 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                       ...                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:40:18,827 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 19:40:18,830 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 19:40:18,862 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 19:40:18,863 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2024-06-12 19:44:41,087 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 19:44:41,119 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 19:44:41,234 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 19:44:41,374 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                               ...                                                                  
+2022-06-13  26737.578125   NaN  NaN  22487.388672  ...              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  ...              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  ...              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  ...              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  ...              NaN              NaN            NaN              NaN
+
+[5 rows x 20 columns]
+2024-06-12 19:44:41,380 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 19:44:41,381 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 19:44:41,399 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 19:44:41,459 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                           ...                                                                  
+2022-12-29  0.000078   0.0  0.0  16642.341797  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:44:41,460 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 19:44:41,469 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 19:44:41,525 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                       ...                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 19:44:41,529 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 19:44:41,535 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 19:44:41,577 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 19:44:41,577 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.
+2024-06-12 20:55:52,705 - feature_engineering_logger - INFO - Starting feature engineering for BTC-USD.
+2024-06-12 20:55:52,725 - feature_engineering_logger - INFO - Processing features for BTC-USD.
+2024-06-12 20:55:52,785 - feature_engineering_logger - INFO - Data after calculating technical indicators: shape = (729, 20)
+2024-06-12 20:55:52,869 - feature_engineering_logger - INFO - Sample data:
+                    Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                               ...                                                                  
+2022-06-13  26737.578125   NaN  NaN  22487.388672  ...              NaN              NaN            NaN              NaN
+2022-06-14  22487.986328   NaN  NaN  22206.792969  ...              NaN              NaN            NaN              NaN
+2022-06-15  22196.730469   NaN  NaN  22572.839844  ...              NaN              NaN            NaN              NaN
+2022-06-16  22576.304688   NaN  NaN  20381.650391  ...              NaN              NaN            NaN              NaN
+2022-06-17  20385.718750   NaN  NaN  20471.482422  ...              NaN              NaN            NaN              NaN
+
+[5 rows x 20 columns]
+2024-06-12 20:55:52,875 - feature_engineering_logger - INFO - Data cleaned. NaN values handled.
+2024-06-12 20:55:52,875 - feature_engineering_logger - INFO - Normalizing features.
+2024-06-12 20:55:52,890 - feature_engineering_logger - INFO - Data after normalizing features: shape = (530, 20)
+2024-06-12 20:55:52,945 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low         Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                           ...                                                                  
+2022-12-29  0.000078   0.0  0.0  16642.341797  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  16602.585938  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  16547.496094  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  16625.080078  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  16688.470703  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 20:55:52,945 - feature_engineering_logger - INFO - Normalizing 'Close' column.
+2024-06-12 20:55:52,951 - feature_engineering_logger - INFO - Data after normalizing 'Close' column: shape = (530, 20)
+2024-06-12 20:55:53,007 - feature_engineering_logger - INFO - Sample data:
+                Open  High  Low     Close  ...  Fibonacci_23.6%  Fibonacci_38.2%  Fibonacci_50%  Fibonacci_61.8%
+Date                                       ...                                                                  
+2022-12-29  0.000078   0.0  0.0  0.001678  ...              0.0              0.0            0.0              0.0
+2022-12-30  0.001652   0.0  0.0  0.000974  ...              0.0              0.0            0.0              0.0
+2022-12-31  0.000986   0.0  0.0  0.000000  ...              0.0              0.0            0.0              0.0
+2023-01-01  0.000000   0.0  0.0  0.001372  ...              0.0              0.0            0.0              0.0
+2023-01-02  0.001373   0.0  0.0  0.002494  ...              0.0              0.0            0.0              0.0
+
+[5 rows x 20 columns]
+2024-06-12 20:55:53,011 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/close_scaler_BTC-USD.pkl
+2024-06-12 20:55:53,014 - feature_engineering_logger - INFO - Scaler saved at /home/gianluca/Workspace/tensorflow/btc-prediction/scalers/feature_scaler_BTC-USD.pkl
+2024-06-12 20:55:53,062 - feature_engineering_logger - INFO - Scaled data saved at /home/gianluca/Workspace/tensorflow/btc-prediction/data/scaled_data_BTC-USD.csv
+2024-06-12 20:55:53,062 - feature_engineering_logger - INFO - Feature engineering completed for BTC-USD.

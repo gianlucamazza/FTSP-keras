@@ -117,8 +117,21 @@
      </layout>
     </item>
     <item>
+     <widget class="QWidget" name="plotWidget" />
+    </item>
+    <item>
      <widget class="QTextEdit" name="logOutput">
       <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="value">
+       <number>0</number>
+      </property>
+      <property name="textVisible">
        <bool>true</bool>
       </property>
      </widget>

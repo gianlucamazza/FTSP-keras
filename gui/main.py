@@ -1,10 +1,11 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QTextEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLineEdit, QTextEdit, QProgressBar
 from PyQt5.uic import loadUi
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread
 from pathlib import Path
 import logging
 from datetime import datetime, timedelta
+import pandas as pd
 
 project_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_dir))
@@ -13,42 +14,9 @@ from src.train import main as train_main
 from src.data_preparation import main as data_preparation_main
 from src.feature_engineering import main as feature_engineering_main
 from src.predict import main as predict_main
-
-class Worker(QThread):
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
-    info = pyqtSignal(str)
-    stop_signal = pyqtSignal()
-
-    def __init__(self, func, ticker=None, start_date=None, end_date=None):
-        super().__init__()
-        self.func = func
-        self.ticker = ticker
-        self.start_date = start_date
-        self.end_date = end_date
-        self._is_running = True
-
-    def run(self):
-        try:
-            if self.ticker:
-                self.info.emit(f"Starting {self.func.__name__} for {self.ticker}")
-                self.func(self.ticker, start_date=self.start_date, end_date=self.end_date, worker=self)
-            else:
-                self.info.emit(f"Starting {self.func.__name__}")
-                self.func(worker=self)
-            if self._is_running:
-                self.info.emit(f"{self.func.__name__} completed")
-                self.finished.emit()
-            else:
-                self.info.emit(f"{self.func.__name__} stopped")
-        except Exception as e:
-            self.error.emit(str(e))
-
-    def stop(self):
-        if not self._is_running:
-            return
-        self._is_running = False
-        self.info.emit("Stop signal received")
+from gui.worker import Worker
+from gui.mpl_canvas import MplCanvas
+from gui.qtext_edit_logger import QTextEditLogger
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -65,9 +33,17 @@ class MainWindow(QMainWindow):
         self.startDateInput = self.findChild(QLineEdit, 'startDateInput')
         self.endDateInput = self.findChild(QLineEdit, 'endDateInput')
         self.logOutput = self.findChild(QTextEdit, 'logOutput')
+        self.progressBar = self.findChild(QProgressBar, 'progressBar')
+        
+        # Plot widget
+        self.plotWidget = self.findChild(QWidget, 'plotWidget')
+        self.plot_layout = QVBoxLayout(self.plotWidget)
+        self.canvas = MplCanvas(self.plotWidget, width=5, height=4, dpi=100)
+        self.plot_layout.addWidget(self.canvas)
 
-        # Initialize stop button as hidden
+        # Initialize stop button as hidden and disabled
         self.stopButton.hide()
+        self.stopButton.setEnabled(False)
 
         # Set default dates
         self.set_default_dates()
@@ -103,12 +79,14 @@ class MainWindow(QMainWindow):
 
         ticker = self.tickerInput.text()
         self.worker = Worker(train_main, ticker)
-        self.worker.info.connect(self.logger.info)
-        self.worker.error.connect(self.logger.error)
+        self.worker.info.connect(self.update_log)
+        self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_process_finished)
+        self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
         # Show stop button and hide other buttons
+        self.stopButton.setEnabled(True)
         self.stopButton.show()
         self.toggle_buttons(False)
 
@@ -117,13 +95,15 @@ class MainWindow(QMainWindow):
         start_date = self.startDateInput.text()
         end_date = self.endDateInput.text()
         self.worker = Worker(data_preparation_main, ticker, start_date, end_date)
-        self.worker.info.connect(self.logger.info)
-        self.worker.error.connect(self.logger.error)
+        self.worker.info.connect(self.update_log)
+        self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_data_preparation_finished)
+        self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
         # Show stop button and hide other buttons
-        self.stopButton.show()
+        self.stopButton.setEnabled(False)
+        self.stopButton.hide()
         self.toggle_buttons(False)
 
     def start_feature_engineering(self):
@@ -133,25 +113,29 @@ class MainWindow(QMainWindow):
 
         ticker = self.tickerInput.text()
         self.worker = Worker(feature_engineering_main, ticker)
-        self.worker.info.connect(self.logger.info)
-        self.worker.error.connect(self.logger.error)
+        self.worker.info.connect(self.update_log)
+        self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_feature_engineering_finished)
+        self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
         # Show stop button and hide other buttons
-        self.stopButton.show()
+        self.stopButton.setEnabled(False)
+        self.stopButton.hide()
         self.toggle_buttons(False)
 
     def start_prediction(self):
         ticker = self.tickerInput.text()
         self.worker = Worker(predict_main, ticker)
-        self.worker.info.connect(self.logger.info)
-        self.worker.error.connect(self.logger.error)
+        self.worker.info.connect(self.update_log)
+        self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_process_finished)
+        self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
         # Show stop button and hide other buttons
-        self.stopButton.show()
+        self.stopButton.setEnabled(False)
+        self.stopButton.hide()
         self.toggle_buttons(False)
 
     def stop_training(self):
@@ -169,14 +153,20 @@ class MainWindow(QMainWindow):
         self.logger.info("Process finished.")
         self.worker = None
 
+        # Reset progress bar
+        self.progressBar.setValue(0)
+
         # Show other buttons and hide stop button
         self.stopButton.hide()
+        self.stopButton.setEnabled(False)
         self.toggle_buttons(True)
 
     def on_data_preparation_finished(self):
         self.logger.info("Data preparation finished.")
         self.data_prepared = True
+        self.toggle_buttons(True)  # Enable buttons after data preparation
         self.on_process_finished()
+        self.plot_data()
 
     def on_feature_engineering_finished(self):
         self.logger.info("Feature engineering finished.")
@@ -189,16 +179,26 @@ class MainWindow(QMainWindow):
         self.trainButton.setEnabled(enabled and self.data_prepared and self.features_engineered)
         self.predictButton.setEnabled(enabled)
 
-class QTextEditLogger(logging.Handler):
-    def __init__(self, text_edit):
-        super().__init__()
-        self.text_edit = text_edit
+    def plot_data(self):
+        try:
+            df = pd.read_csv(f'data/processed_data_{self.tickerInput.text()}.csv', index_col='Date', parse_dates=True)
+            self.canvas.axes.clear()
+            self.canvas.axes.plot(df.index, df['Close'], label='Close Price')
+            self.canvas.axes.set_title(f"{self.tickerInput.text()} Price History")
+            self.canvas.axes.set_xlabel("Date")
+            self.canvas.axes.set_ylabel("Price (USD)")
+            self.canvas.axes.legend()
+            self.canvas.draw()
+        except Exception as e:
+            self.logger.error(f"Failed to plot data: {e}")
 
-    def emit(self, record):
-        msg = self.format(record)
-        self.text_edit.append(msg)
+    def update_log(self, message):
+        self.logOutput.append(message)
+    
+    def update_progress(self, value):
+        self.progressBar.setValue(value)
 
-if __name__ == "__main__":
+if __name__ == "___MAIN__":
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

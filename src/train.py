@@ -5,6 +5,7 @@ import joblib
 from pathlib import Path
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit
+import time
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -95,6 +96,9 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
             x_train, y_train, epochs=1, batch_size=parameters['batch_size'],
             validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
         )
+        if worker:
+            progress = ((epoch + 1) / parameters['epochs']) * 100
+            worker.update_progress(int(progress))
     
     model_path = Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"
     model.save(model_path)
