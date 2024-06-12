@@ -76,16 +76,29 @@ class DataPreparator:
 
     def prepare_data(self):
         """Prepares data for model training and prediction."""
+        if not self.data_path.exists():
+            logger.error(f"File not found: {self.data_path}")
+            raise FileNotFoundError(f"File not found: {self.data_path}")
+
         df = pd.read_csv(self.data_path, index_col='Date', parse_dates=True)
         df = arrange_and_fill(df)
+        logger.info("Data arranged and missing values filled.")
         df = calculate_technical_indicators(df)
+        logger.info("Technical indicators calculated.")
+        if df.isnull().values.any():
+            logger.warning("NaN values detected after calculating technical indicators. Filling NaNs...")
+            df.ffill(inplace=True)
+            df.bfill(inplace=True)
         df.to_csv(self.processed_data_path, index=True)
+        logger.info(f"Processed data saved to {self.processed_data_path}")
 
         df_support = df[[CLOSE]].copy()
         df_support.index.name = 'Date'
 
         df_scaled, feature_scaler, close_scaler = self.process_and_save_features(df)
         df_scaled.to_csv(self.scaled_data_path, index=True)
+        logger.info(f"Scaled data saved to {self.scaled_data_path}")
+
         return df_scaled, feature_scaler, close_scaler, df_support
 
 
@@ -96,7 +109,17 @@ def prepare_data_for_plotting(predictions, actual_values, historical_dates, futu
 
     plot_df['Actual'] = np.concatenate((actual_values, [np.nan] * len(future_dates)))
     plot_df['Predicted'] = np.concatenate(([np.nan] * len(historical_dates), predictions.flatten()))
-
+    
+    # Log start and end dates for both historical and future data
+    logger.info(f"Start date of historical data: {historical_dates[0]}")
+    logger.info(f"End date of historical data: {historical_dates[-1]}")
+    logger.info(f"Start date of future data: {future_dates[0]}")
+    logger.info(f"End date of future data: {future_dates[-1]}")
+    
+    # Log the number of historical and future data points
+    logger.info(f"Number of historical data points: {len(historical_dates)}")
+    logger.info(f"Number of future data points: {len(future_dates)}")
+    
     return plot_df
 
 
@@ -130,6 +153,14 @@ class ModelPredictor:
         return self.close_scaler.inverse_transform(predictions)
 
 
+def verify_continuous_dates(dates):
+    """Verifies that the dates are continuous and returns the missing dates."""
+    missing_dates = []
+    for i in range(1, len(dates)):
+        if dates[i] != dates[i-1] + timedelta(days=1):
+            missing_dates.append(dates[i-1] + timedelta(days=1))
+    return missing_dates
+
 def main(ticker='BTC-USD'):
     try:
         data_preparator = DataPreparator(ticker)
@@ -138,11 +169,17 @@ def main(ticker='BTC-USD'):
         model_predictor = ModelPredictor(ticker)
         predictions_scaled = model_predictor.predict(df_scaled)
         predictions = model_predictor.inverse_scale_predictions(predictions_scaled)
-        logger.info(f"Number of predictions made: {len(predictions)}")
 
         df = pd.read_csv(BASE_DIR / f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
         historical_dates = df.index
         last_historical_date = historical_dates[-1]
+        
+        # Verify that the dates are continuous
+        missing_dates = verify_continuous_dates(historical_dates)
+        if missing_dates:
+            logger.error(f"Missing dates in historical data: {missing_dates}")
+            raise ValueError(f"Missing dates in historical data: {missing_dates}")
+
 
         # Log the start and end of the historical dates
         logger.info(f"Historical data starts on: {historical_dates[0]}")

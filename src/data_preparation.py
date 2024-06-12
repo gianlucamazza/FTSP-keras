@@ -84,6 +84,8 @@ def main(ticker='BTC-USD', start_date=None, end_date=None):
     raw_data_path = f'data/raw_data_{ticker}.csv'
     processed_data_path = f'data/processed_data_{ticker}.csv'
     df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
+    logger.info(f"Data for {ticker} successfully processed and saved.")
+    logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
     save_df_to_csv(df, processed_data_path)
     logger.info(f'Finished data preparation for {ticker}.')
 
