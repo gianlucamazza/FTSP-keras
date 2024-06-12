@@ -1,0 +1,68 @@
+2024-01-08 12:35:44,317 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 12:35:44,912 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 12:37:22,438 - main_logger - INFO - Script train.py executed successfully for BTC-USD.
+2024-01-08 12:58:13,970 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 12:58:13,971 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 12:58:13,971 - main_logger - INFO - Removed scalers/close_scaler_BTC-USD.pkl
+2024-01-08 12:58:17,584 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:06:09,621 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 13:06:09,621 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 13:06:10,559 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 13:06:11,159 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 13:08:07,712 - main_logger - INFO - Script train.py executed successfully for BTC-USD.
+2024-01-08 13:08:19,276 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:15:06,797 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:20:07,164 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:22:33,512 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:28:43,854 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:30:06,581 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:32:29,970 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:34:57,253 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:35:44,117 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:36:11,177 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:39:26,453 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:40:37,535 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 13:42:45,532 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 13:42:45,532 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 13:42:45,532 - main_logger - INFO - Removed scalers/close_scaler_BTC-USD.pkl
+2024-01-08 13:42:46,494 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 13:42:47,115 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 13:44:56,913 - main_logger - ERROR - Error executing train.py for BTC-USD: Command '['python', '/home/gianluca/Workspace/btc-prediction-lstm/src/train.py', 'BTC-USD']' returned non-zero exit status 1.
+2024-01-08 13:47:20,585 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 13:47:20,585 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 13:47:20,585 - main_logger - INFO - Removed scalers/close_scaler_BTC-USD.pkl
+2024-01-08 13:47:21,668 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 13:47:22,264 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 13:49:27,080 - main_logger - ERROR - Error executing train.py for BTC-USD: Command '['python', '/home/gianluca/Workspace/btc-prediction-lstm/src/train.py', 'BTC-USD']' returned non-zero exit status 1.
+2024-01-08 13:52:53,720 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 13:52:53,720 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 13:52:53,720 - main_logger - INFO - Removed scalers/close_scaler_BTC-USD.pkl
+2024-01-08 13:52:54,571 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 13:52:55,168 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 13:55:01,862 - main_logger - ERROR - Error executing train.py for BTC-USD: Command '['python', '/home/gianluca/Workspace/btc-prediction-lstm/src/train.py', 'BTC-USD']' returned non-zero exit status 1.
+2024-01-08 13:55:19,708 - main_logger - INFO - Removed data/processed_data_BTC-USD.csv
+2024-01-08 13:55:19,708 - main_logger - INFO - Removed data/scaled_data_BTC-USD.csv
+2024-01-08 13:55:19,708 - main_logger - INFO - Removed scalers/close_scaler_BTC-USD.pkl
+2024-01-08 13:55:20,595 - main_logger - INFO - Script data_preparation.py executed successfully for BTC-USD.
+2024-01-08 13:55:21,210 - main_logger - INFO - Script feature_engineering.py executed successfully for BTC-USD.
+2024-01-08 13:57:23,919 - main_logger - INFO - Script train.py executed successfully for BTC-USD.
+2024-01-08 14:18:23,641 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:18:49,204 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:23:14,325 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:24:53,497 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:26:32,655 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:29:28,062 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:30:05,324 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:32:35,591 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:34:58,906 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:36:41,985 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 14:39:54,930 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 15:18:58,730 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 15:20:00,526 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 16:24:54,053 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-08 16:39:51,115 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-10 11:09:45,187 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-10 11:10:47,877 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-10 11:14:35,115 - main_logger - ERROR - Error executing predict.py for BTC-USD: Command '['python', '/home/gianluca/Workspace/btc-prediction-lstm/src/predict.py', 'BTC-USD']' returned non-zero exit status 1.
+2024-01-10 11:15:43,017 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.
+2024-01-10 11:16:07,059 - main_logger - INFO - Script predict.py executed successfully for BTC-USD.

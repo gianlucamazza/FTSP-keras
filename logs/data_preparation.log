@@ -1,0 +1,60 @@
+2024-01-08 12:35:43,837 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 12:35:43,837 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 12:35:44,223 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 12:35:44,226 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 12:35:44,233 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 12:35:44,234 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 12:35:44,238 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-01-08 13:06:10,152 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 13:06:10,152 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 13:06:10,462 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 13:06:10,465 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 13:06:10,474 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 13:06:10,474 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 13:06:10,479 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-01-08 13:42:46,059 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 13:42:46,059 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 13:42:46,406 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 13:42:46,409 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 13:42:46,412 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 13:42:46,412 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 13:42:46,414 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-01-08 13:47:21,096 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 13:47:21,096 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 13:47:21,576 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 13:47:21,579 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 13:47:21,584 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 13:47:21,585 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 13:47:21,590 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-01-08 13:52:54,207 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 13:52:54,207 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 13:52:54,478 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 13:52:54,482 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 13:52:54,490 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 13:52:54,490 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 13:52:54,495 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-01-08 13:55:20,232 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-01-08 13:55:20,232 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-01-08 13:55:20,500 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-01-08 13:55:20,504 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-01-08 13:55:20,511 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-01-08 13:55:20,512 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-01-08 13:55:20,517 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-06-12 10:05:24,443 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-06-12 10:05:24,443 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-06-12 10:05:25,104 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-06-12 10:05:25,107 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-06-12 10:05:25,116 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-06-12 10:05:25,116 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-06-12 10:05:25,116 - data_preparation_logger - INFO - Start date: 2023-01-01 00:00:00, End date: 2024-06-12 00:00:00
+2024-06-12 10:05:25,116 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-06-12 10:05:25,123 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
+2024-06-12 10:05:34,513 - data_preparation_logger - INFO - Starting data preparation for BTC-USD.
+2024-06-12 10:05:34,513 - data_preparation_logger - INFO - Downloading data for BTC-USD from 2023-01-01 to None.
+2024-06-12 10:05:36,906 - data_preparation_logger - INFO - Arranging and filling missing data for BTC-USD.
+2024-06-12 10:05:36,909 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/raw_data_BTC-USD.csv.
+2024-06-12 10:05:36,916 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-06-12 10:05:36,916 - data_preparation_logger - INFO - Data for BTC-USD successfully processed and saved.
+2024-06-12 10:05:36,916 - data_preparation_logger - INFO - Start date: 2023-01-01 00:00:00, End date: 2024-06-12 00:00:00
+2024-06-12 10:05:36,916 - data_preparation_logger - INFO - Saving DataFrame to /home/gianluca/Workspace/btc-prediction-lstm/data/processed_data_BTC-USD.csv.
+2024-06-12 10:05:36,921 - data_preparation_logger - INFO - Finished data preparation for BTC-USD.
