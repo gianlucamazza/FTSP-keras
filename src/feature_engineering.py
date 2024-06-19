@@ -6,15 +6,14 @@ from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 import joblib
 from pathlib import Path
+import logger as logger_module
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
 sys.path.append(str(project_dir))
 
-import logger as logger
-
 BASE_DIR = Path(__file__).parent.parent
-logger = logger.setup_logger('feature_engineering_logger', BASE_DIR / 'logs', 'feature_engineering.log')
+logger = logger_module.setup_logger('feature_engineering_logger', BASE_DIR / 'logs', 'feature_engineering.log')
 
 
 def validate_input_data(df, required_columns):
@@ -45,7 +44,7 @@ def normalize_features(df, columns_to_normalize):
 def normalize_close(df):
     logger.info("Normalizing 'Close' column.")
     scaler = MinMaxScaler()
-    df[CLOSE] = scaler.fit_transform(df[[CLOSE]])
+    df[[CLOSE]] = scaler.fit_transform(df[[CLOSE]])
     return scaler
 
 
@@ -57,29 +56,33 @@ def save_scaler(scaler, ticker, scaler_type='feature'):
 
 
 def process_and_save_features(df, ticker):
-    logger.info(f"Processing features for {ticker}.")
+    try:
+        logger.info(f"Processing features for {ticker}.")
 
-    df = calculate_technical_indicators(df)
-    check_data(df, "calculating technical indicators")
+        df = calculate_technical_indicators(df)
+        check_data(df, "calculating technical indicators")
 
-    required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
-    validate_input_data(df, required_columns)
+        required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
+        validate_input_data(df, required_columns)
 
-    clean_data(df)
+        clean_data(df)
 
-    columns_to_normalize = [col for col in df.columns if col != CLOSE]
-    df, feature_scaler = normalize_features(df, columns_to_normalize)
-    check_data(df, "normalizing features")
+        columns_to_normalize = [col for col in df.columns if col != CLOSE]
+        df, feature_scaler = normalize_features(df, columns_to_normalize)
+        check_data(df, "normalizing features")
 
-    close_scaler = normalize_close(df)
-    check_data(df, "normalizing 'Close' column")
+        close_scaler = normalize_close(df)
+        check_data(df, "normalizing 'Close' column")
 
-    save_scaler(close_scaler, ticker, scaler_type='close')
-    save_scaler(feature_scaler, ticker, scaler_type='feature')
+        save_scaler(close_scaler, ticker, scaler_type='close')
+        save_scaler(feature_scaler, ticker, scaler_type='feature')
 
-    scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
-    df.to_csv(scaled_data_path, index=True)
-    logger.info(f"Scaled data saved at {scaled_data_path}")
+        scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
+        df.to_csv(scaled_data_path, index=True)
+        logger.info(f"Scaled data saved at {scaled_data_path}")
+    except Exception as e:
+        logger.error(f"Error in process_and_save_features: {e}")
+        raise
 
 
 def main(ticker='BTC-USD', worker=None):
@@ -88,11 +91,16 @@ def main(ticker='BTC-USD', worker=None):
     if not file_path.exists():
         logger.error(f"File not found: {file_path}")
         return
-    df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
-    process_and_save_features(df, ticker)
-    logger.info(f"Feature engineering completed for {ticker}.")
-    if worker and not worker._is_running:
+    try:
+        df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
+        process_and_save_features(df, ticker)
+        logger.info(f"Feature engineering completed for {ticker}.")
+    except Exception as e:
+        logger.error(f"Failed to complete feature engineering for {ticker}: {e}")
+
+    if worker and hasattr(worker, 'is_running') and not worker.is_running():
         return
+
 
 if __name__ == '__main__':
     main(ticker='BTC-USD')
