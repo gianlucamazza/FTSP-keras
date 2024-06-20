@@ -57,7 +57,7 @@ class ModelPredictor:
             logger.error(f"Dataset file not found: {self.data_path}")
             raise FileNotFoundError(f"Dataset file not found: {self.data_path}")
         try:
-            df = pd.read_csv(self.data_path, index_col='Date')
+            df = pd.read_csv(self.data_path, index_col='Date', parse_dates=True)
             df.ffill(inplace=True)
             return df
         except Exception as e:
@@ -98,28 +98,46 @@ class ModelPredictor:
         )
         return full_inverse_scaled[:, close_index]
 
+    def inverse_transform_historical(self):
+        """Inverse transform the historical data."""
+        # Inverse transform using the feature scaler
+        scaler_columns = self.df.columns.tolist()
+        transformed_data = self.feature_scaler.inverse_transform(self.df[scaler_columns])
+        return pd.DataFrame(transformed_data, columns=scaler_columns, index=self.df.index)
+
     def save_predictions(self, predictions, file_path):
-        """Save the predictions to disk."""
-        predictions_df = pd.DataFrame(predictions, columns=[self.COLUMN_TO_PREDICT])
-        predictions_df.to_csv(file_path, index=False)
+        """Save the historical data and predictions to disk."""
+        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        predicted_data = pd.Series(predictions, index=future_dates)
+
+        historical_data = self.inverse_transform_historical()
+        combined_df = pd.concat([historical_data[self.COLUMN_TO_PREDICT], predicted_data], axis=1)
+        combined_df.columns = ['Historical', 'Predicted']
+
+        combined_df.to_csv(file_path, index=True)
         logger.info(f"Predictions saved at {file_path}")
 
     def plot_predictions(self, predictions):
         """Plot the predictions along with the actual data."""
         plt.style.use('ggplot')
         plt.figure(figsize=(15, 7))
-        actual_data = self.df[self.COLUMN_TO_PREDICT][-len(predictions):]
+
+        # Combine historical data with predictions
+        actual_data = self.inverse_transform_historical()[self.COLUMN_TO_PREDICT]
+        future_dates = pd.date_range(start=actual_data.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        predicted_data = pd.Series(predictions, index=future_dates)
 
         plt.plot(actual_data.index, actual_data, label='Actual', color='blue', linewidth=2)
-        plt.plot(actual_data.index, predictions, label='Predicted', linestyle='--', color='orange', linewidth=2)
+        plt.plot(predicted_data.index, predicted_data, label='Predicted', linestyle='--', color='orange', linewidth=2)
 
-        plt.fill_between(actual_data.index, actual_data, predictions, color='gray', alpha=0.2)
+        plt.fill_between(predicted_data.index, actual_data.iloc[-1], predicted_data, color='gray', alpha=0.2)
 
         # Annotate max, min, and some significant points
         plt.scatter(actual_data.idxmax(), actual_data.max(), color='red', marker='o', label='Max Actual')
         plt.scatter(actual_data.idxmin(), actual_data.min(), color='green', marker='o', label='Min Actual')
         plt.scatter(actual_data.index[-1], actual_data.iloc[-1], color='purple', marker='o', label='Last Actual')
-        plt.scatter(actual_data.index[-1], predictions[-1], color='yellow', marker='o', label='Last Predicted')
+        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o', label='First Predicted')
+        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o', label='Last Predicted')
 
         plt.legend()
         plt.title(f'{self.ticker} Close Price Prediction')
@@ -129,7 +147,7 @@ class ModelPredictor:
         plt.xticks(rotation=45)
 
         # Add a shaded area for prediction period
-        plt.axvspan(actual_data.index[-1], actual_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
+        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
 
         plt.tight_layout()
 
