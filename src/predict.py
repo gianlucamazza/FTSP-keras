@@ -5,7 +5,6 @@ import joblib
 from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
-from data_utils import prepare_data
 import logger as logger_module
 from config import COLUMN_SETS, CLOSE, PARAMETERS
 from technical_indicators import calculate_technical_indicators
@@ -30,18 +29,6 @@ def load_scaler(path):
         raise
 
 
-def load_model(path):
-    """Load a trained model from disk."""
-    if not path.exists():
-        logger.error(f"Model file not found: {path}")
-        raise FileNotFoundError(f"Model file not found: {path}")
-    try:
-        return load_model(path)
-    except Exception as e:
-        logger.error(f"Model file not found or could not be loaded: {e}")
-        raise
-
-
 class ModelPredictor:
     COLUMN_TO_PREDICT = CLOSE
     DATA_FOLDER = 'data'
@@ -54,6 +41,12 @@ class ModelPredictor:
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/raw_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
         self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
+
+        logger.info(f"Initializing ModelPredictor for ticker {ticker}")
+        logger.info(f"Data path: {self.data_path}")
+        logger.info(f"Scaler path: {self.scaler_path}")
+        logger.info(f"Model path: {self.model_path}")
+
         self.feature_scaler = load_scaler(self.scaler_path)
         self.model = load_model(self.model_path)
         self.df = self.load_dataset()
@@ -71,19 +64,28 @@ class ModelPredictor:
             logger.error(f"Error loading dataset: {e}", exc_info=True)
             raise
 
-    def create_windowed_data(self, steps):
-        """Create windowed data for prediction."""
-        x = []
-        data = self.df.values
-        for i in range(steps, len(data)):
-            x.append(data[i - steps:i])
-        return np.array(x)
+    def prepare_data(self):
+        """Prepare the data by adding technical indicators and scaling."""
+        logger.info("Calculating technical indicators.")
+        self.df = calculate_technical_indicators(self.df)
 
-    def predict(self, steps):
+        # Ensure all required columns are present
+        missing_columns = set(COLUMN_SETS['to_scale']) - set(self.df.columns)
+        if missing_columns:
+            logger.error(f"Missing required columns in the DataFrame: {missing_columns}")
+            raise ValueError(f"Missing required columns in the DataFrame: {missing_columns}")
+
+        logger.info("Scaling data.")
+        scaler_columns = COLUMN_SETS['to_scale']
+        self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
+
+    def predict(self):
         """Make predictions using the trained model."""
-        x = self.create_windowed_data(steps)
+        self.prepare_data()
+        x = self.df.values[-PARAMETERS['train_steps']:]
+        x = np.expand_dims(x, axis=0)
         predictions = self.model.predict(x)
-        return predictions
+        return predictions.flatten()
 
     def inverse_transform_predictions(self, predictions):
         """Inverse transform the predictions."""
@@ -102,15 +104,9 @@ class ModelPredictor:
         predictions_df.to_csv(file_path, index=False)
         logger.info(f"Predictions saved at {file_path}")
 
-    def save_predictions(self, predictions, file_path):
-        """Save the predictions to disk."""
-        predictions_df = pd.DataFrame(predictions, columns=[self.COLUMN_TO_PREDICT])
-        predictions_df.to_csv(file_path, index=False)
-        logger.info(f"Predictions saved at {file_path}")
-
-    def plot_predictions(self, predictions, steps):
+    def plot_predictions(self, predictions):
         """Plot the predictions along with the actual data."""
-        plt.style.use('seaborn-darkgrid')
+        plt.style.use('ggplot')
         plt.figure(figsize=(15, 7))
         actual_data = self.df[self.COLUMN_TO_PREDICT][-len(predictions):]
 
@@ -133,8 +129,7 @@ class ModelPredictor:
         plt.xticks(rotation=45)
 
         # Add a shaded area for prediction period
-        plt.axvspan(actual_data.index[-steps], actual_data.index[-1], color='lightblue', alpha=0.3,
-                    label='Prediction Period')
+        plt.axvspan(actual_data.index[-1], actual_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
 
         plt.tight_layout()
 
@@ -148,10 +143,9 @@ class ModelPredictor:
     def run(self):
         """Run the prediction process."""
         try:
-            steps = PARAMETERS['train_steps']
-            predictions_scaled = self.predict(steps)
+            predictions_scaled = self.predict()
             predictions = self.inverse_transform_predictions(predictions_scaled)
-            self.plot_predictions(predictions, steps)
+            self.plot_predictions(predictions)
             predictions_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
             self.save_predictions(predictions, predictions_path)
         except Exception as e:
