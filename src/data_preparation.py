@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 import yfinance as yf
-import logging
+import logger as logger_module
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from config import COLUMN_SETS
@@ -12,17 +12,12 @@ project_dir = Path(__file__).resolve().parent
 sys.path.append(str(project_dir))
 
 # Setup logger
-logger = logging.getLogger('data_preparation_logger')
-handler = logging.FileHandler('logs/data_preparation.log')
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-
 BASE_DIR = Path(__file__).parent.parent
+logger = logger_module.setup_logger('data_preparation_logger', BASE_DIR / 'logs', 'data_preparation.log')
 
 
 def download_financial_data(ticker, start_date, end_date):
+    """Download financial data for a given ticker and date range."""
     logger.info(f"Downloading data for {ticker} from {start_date} to {end_date}.")
     try:
         data = yf.download(ticker, start=start_date, end=end_date, progress=False)
@@ -37,11 +32,12 @@ def download_financial_data(ticker, start_date, end_date):
 
 
 def arrange_and_fill(df, ticker):
+    """Arrange and fill missing data in the DataFrame."""
     logger.info(f"Arranging and filling missing data for {ticker}.")
-    df.reset_index(inplace=True)
+    df = df.reset_index()
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
-    df = df[COLUMN_SETS['basic']]
+    df = df[COLUMN_SETS['basic']].copy()
 
     df.dropna(how='all', inplace=True)
     df.sort_index(inplace=True)
@@ -51,6 +47,7 @@ def arrange_and_fill(df, ticker):
 
 
 def save_df_to_csv(df, relative_path):
+    """Save DataFrame to a CSV file."""
     file_path = BASE_DIR / relative_path
     logger.info(f"Saving DataFrame to {file_path}.")
     file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,6 +55,7 @@ def save_df_to_csv(df, relative_path):
 
 
 def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
+    """Download, arrange, fill, and save financial data for a given ticker."""
     try:
         df = download_financial_data(ticker, start_date, end_date)
         df = arrange_and_fill(df, ticker)
@@ -70,6 +68,7 @@ def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
 
 
 def plot_price_history(dates, prices, ticker):
+    """Plot the price history for a given ticker."""
     logger.info(f"Plotting price history for {ticker}.")
     plt.figure(figsize=(15, 10))
     plt.plot(dates, prices, label='Close Price')
@@ -86,6 +85,7 @@ def plot_price_history(dates, prices, ticker):
 
 
 def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
+    """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {ticker}.")
     raw_data_path = f'data/raw_data_{ticker}.csv'
     processed_data_path = f'data/processed_data_{ticker}.csv'
