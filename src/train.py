@@ -125,7 +125,12 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
     trainer = ModelTrainer(ticker)
 
     n_splits = parameters['n_folds']
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    if n_splits > 1:
+        tscv = TimeSeriesSplit(n_splits=n_splits)
+        splits = tscv.split(trainer.x)
+    else:
+        split_index = int(len(trainer.x) * 0.8)
+        splits = [(np.arange(split_index), np.arange(split_index, len(trainer.x)))]
 
     logger.info(f"Number of splits: {n_splits}")
 
@@ -133,12 +138,12 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
     best_model = None
     rmse_list = []
 
-    for i, (train_index, test_index) in enumerate(tscv.split(trainer.x)):
+    for i, (train_index, test_index) in enumerate(splits):
         if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
             logger.info("Training stopped early.")
             return
-        percent_complete = (i / tscv.n_splits) * 100
-        logger.info(f"Training fold {i + 1}/{tscv.n_splits} ({percent_complete:.2f}% complete)")
+        percent_complete = (i / n_splits) * 100
+        logger.info(f"Training fold {i + 1}/{n_splits} ({percent_complete:.2f}% complete)")
 
         x_train, x_test = trainer.x[train_index], trainer.x[test_index]
         y_train, y_test = trainer.y[train_index], trainer.y[test_index]
@@ -165,7 +170,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         best_model.save(best_model_path)
         logger.info(f"Best model saved at {best_model_path}")
 
-    for _, test_index in tscv.split(trainer.x):
+    for _, test_index in splits:
         if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
             logger.info("Evaluation stopped early.")
             return
