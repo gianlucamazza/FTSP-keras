@@ -124,7 +124,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
 
     trainer = ModelTrainer(ticker)
 
-    n_splits = max(1, (len(trainer.df) - parameters['train_steps']) // parameters['test_steps'])
+    n_splits = parameters['n_folds']
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
     logger.info(f"Number of splits: {n_splits}")

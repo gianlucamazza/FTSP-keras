@@ -59,11 +59,12 @@ COLUMN_SETS = {
 # Parameters for the LSTM model
 PARAMETERS = {
     'neurons': 100,
-    'dropout': 0.3,
+    'dropout': 0.01,
     'additional_layers': 2,
     'bidirectional': True,
     'epochs': 50,
     'batch_size': 32,
-    'train_steps': 60,
-    'test_steps': 30
+    'train_steps': 90,
+    'test_steps': 30,
+    'n_folds': 1
 }
