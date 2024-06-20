@@ -1,212 +1,189 @@
-import numpy as np
+import sys
 import pandas as pd
+import numpy as np
 import joblib
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-from technical_indicators import calculate_technical_indicators
-from config import COLUMN_SETS, CLOSE
-from keras.models import load_model
-from logger import setup_logger
 from pathlib import Path
-from datetime import timedelta
+from keras.models import load_model
+import matplotlib.pyplot as plt
+import logger as logger_module
+from config import COLUMN_SETS, CLOSE, PARAMETERS
+from technical_indicators import calculate_technical_indicators
+
+# Add the project directory to the sys.path
+project_dir = Path(__file__).resolve().parent
+sys.path.append(str(project_dir))
 
 BASE_DIR = Path(__file__).parent.parent
-logger = setup_logger('predict_logger', BASE_DIR / 'logs', 'predict.log')
+logger = logger_module.setup_logger('predict_logger', BASE_DIR / 'logs', 'predict.log')
 
 
-def arrange_and_fill(df):
-    """Sorts the DataFrame by index and fills missing values."""
-    df.sort_index(inplace=True)
-    df.ffill(inplace=True)
-    df.bfill(inplace=True)
-    return df
-
-
-def create_windowed_data(df, steps):
-    """Creates windowed data for time-series prediction."""
-    x = []
-    for i in range(steps, len(df)):
-        x.append(df[i - steps:i])
-    return np.array(x)
-
-
-def scale_close_column(df, df_scaled, close_scaler_path):
-    """Scales the 'Close' column of the DataFrame using the saved scaler."""
-    if 'Close' in COLUMN_SETS['to_scale'] and 'Close' in df_scaled.columns:
-        close_scaler = joblib.load(close_scaler_path)
-        close_index = df_scaled.columns.tolist().index('Close')
-        df_scaled.iloc[:, close_index] = close_scaler.transform(df[['Close']])
-    else:
-        close_scaler = None
-    return close_scaler
-
-
-def scale_features(df):
-    """Scales the features of the DataFrame."""
-    feature_scaler = MinMaxScaler()
-    scaler_columns = [col for col in COLUMN_SETS['to_scale'] if col in df.columns]
-    df_scaled = df[scaler_columns]
-    df_scaled = feature_scaler.fit_transform(df_scaled)
-    return feature_scaler, pd.DataFrame(df_scaled, columns=scaler_columns, index=df.index)
-
-
-class DataPreparator:
-    def __init__(self, ticker):
-        self.ticker = ticker
-        self.data_path = BASE_DIR / f'data/raw_data_{self.ticker}.csv'
-        self.processed_data_path = BASE_DIR / f'data/processed_data_{self.ticker}.csv'
-        self.scaled_data_path = BASE_DIR / f'data/scaled_data_{self.ticker}.csv'
-        self.feature_scaler_path = BASE_DIR / f'scalers/feature_scaler_{self.ticker}.pkl'
-        self.close_scaler_path = BASE_DIR / f'scalers/close_scaler_{self.ticker}.pkl'
-
-    def process_and_save_features(self, df):
-        """Scales features and saves the scaled data."""
-        missing_columns = set(COLUMN_SETS['to_scale']) - set(df.columns)
-        if missing_columns:
-            raise ValueError(f"Missing columns in DataFrame: {missing_columns}")
-
-        feature_scaler, df_scaled = scale_features(df)
-        joblib.dump(feature_scaler, self.feature_scaler_path)
-
-        close_scaler = scale_close_column(df, df_scaled, self.close_scaler_path)
-        if close_scaler:
-            joblib.dump(close_scaler, self.close_scaler_path)
-
-        return df_scaled, feature_scaler, close_scaler
-
-    def prepare_data(self):
-        """Prepares data for model training and prediction."""
-        if not self.data_path.exists():
-            logger.error(f"File not found: {self.data_path}")
-            raise FileNotFoundError(f"File not found: {self.data_path}")
-
-        df = pd.read_csv(self.data_path, index_col='Date', parse_dates=True)
-        df = arrange_and_fill(df)
-        logger.info("Data arranged and missing values filled.")
-        df = calculate_technical_indicators(df)
-        logger.info("Technical indicators calculated.")
-        if df.isnull().values.any():
-            logger.warning("NaN values detected after calculating technical indicators. Filling NaNs...")
-            df.ffill(inplace=True)
-            df.bfill(inplace=True)
-        df.to_csv(self.processed_data_path, index=True)
-        logger.info(f"Processed data saved to {self.processed_data_path}")
-
-        df_support = df[[CLOSE]].copy()
-        df_support.index.name = 'Date'
-
-        df_scaled, feature_scaler, close_scaler = self.process_and_save_features(df)
-        df_scaled.to_csv(self.scaled_data_path, index=True)
-        logger.info(f"Scaled data saved to {self.scaled_data_path}")
-
-        return df_scaled, feature_scaler, close_scaler, df_support
-
-
-def prepare_data_for_plotting(predictions, actual_values, historical_dates, future_dates):
-    """Prepares data for plotting by creating a combined DataFrame."""
-    all_dates = historical_dates.tolist() + future_dates.tolist()
-    plot_df = pd.DataFrame(index=all_dates)
-
-    plot_df['Actual'] = np.concatenate((actual_values, [np.nan] * len(future_dates)))
-    plot_df['Predicted'] = np.concatenate(([np.nan] * len(historical_dates), predictions.flatten()))
-    
-    # Log start and end dates for both historical and future data
-    logger.info(f"Start date of historical data: {historical_dates[0]}")
-    logger.info(f"End date of historical data: {historical_dates[-1]}")
-    logger.info(f"Start date of future data: {future_dates[0]}")
-    logger.info(f"End date of future data: {future_dates[-1]}")
-    
-    # Log the number of historical and future data points
-    logger.info(f"Number of historical data points: {len(historical_dates)}")
-    logger.info(f"Number of future data points: {len(future_dates)}")
-    
-    return plot_df
+def load_scaler(path):
+    """Load a scaler from disk."""
+    if not path.exists():
+        logger.error(f"Scaler file not found: {path}")
+        raise FileNotFoundError(f"Scaler file not found: {path}")
+    try:
+        return joblib.load(path)
+    except Exception as e:
+        logger.error(f"Error loading scaler from {path}: {e}")
+        raise
 
 
 class ModelPredictor:
-    def __init__(self, ticker):
-        self.model_path = BASE_DIR / f'models/model_{ticker}.keras'
+    COLUMN_TO_PREDICT = CLOSE
+    DATA_FOLDER = 'data'
+    SCALERS_FOLDER = 'scalers'
+    MODELS_FOLDER = 'models'
+    PREDICTIONS_FOLDER = 'predictions'
+
+    def __init__(self, ticker='BTC-USD', prediction_steps=30):
+        self.ticker = ticker
+        self.prediction_steps = prediction_steps
+        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/raw_data_{self.ticker}.csv'
+        self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
+
+        logger.info(f"Initializing ModelPredictor for ticker {ticker}")
+        logger.info(f"Data path: {self.data_path}")
+        logger.info(f"Scaler path: {self.scaler_path}")
+        logger.info(f"Model path: {self.model_path}")
+
+        self.feature_scaler = load_scaler(self.scaler_path)
+        self.model = load_model(self.model_path)
+        self.df = self.load_dataset()
+
+    def load_dataset(self):
+        """Load the dataset from disk."""
+        if not self.data_path.exists():
+            logger.error(f"Dataset file not found: {self.data_path}")
+            raise FileNotFoundError(f"Dataset file not found: {self.data_path}")
         try:
-            self.model = load_model(self.model_path)
-            self.feature_scaler = joblib.load(BASE_DIR / f'scalers/feature_scaler_{ticker}.pkl')
-            self.close_scaler = joblib.load(BASE_DIR / f'scalers/close_scaler_{ticker}.pkl')
+            df = pd.read_csv(self.data_path, index_col='Date', parse_dates=True)
+            df.ffill(inplace=True)
+            return df
         except Exception as e:
-            logger.error(f"Failed to initialize ModelPredictor: {e}")
+            logger.error(f"Error loading dataset: {e}", exc_info=True)
             raise
-        self.train_steps = 60
 
-    def predict(self, df_scaled):
-        """Predicts future values based on the scaled data."""
-        df_windowed = create_windowed_data(df_scaled, self.train_steps)
-        try:
-            predictions = self.model.predict(df_windowed)
-            assert len(predictions) == len(
-                df_windowed), "The number of predictions does not match the length of the dataframe"
-        except Exception as e:
-            logger.error(f"Prediction failed: {e}")
-            raise
-        return predictions
+    def prepare_data(self):
+        """Prepare the data by adding technical indicators and scaling."""
+        logger.info("Calculating technical indicators.")
+        self.df = calculate_technical_indicators(self.df)
 
-    def inverse_scale_predictions(self, predictions):
-        """Inverse scales the predictions to the original scale."""
-        predictions = predictions.reshape(-1, 1)
-        return self.close_scaler.inverse_transform(predictions)
+        # Ensure all required columns are present
+        missing_columns = set(COLUMN_SETS['to_scale']) - set(self.df.columns)
+        if missing_columns:
+            logger.error(f"Missing required columns in the DataFrame: {missing_columns}")
+            raise ValueError(f"Missing required columns in the DataFrame: {missing_columns}")
 
+        logger.info("Scaling data.")
+        scaler_columns = COLUMN_SETS['to_scale']
+        self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
 
-def verify_continuous_dates(dates):
-    """Verifies that the dates are continuous and returns the missing dates."""
-    missing_dates = []
-    for i in range(1, len(dates)):
-        if dates[i] != dates[i-1] + timedelta(days=1):
-            missing_dates.append(dates[i-1] + timedelta(days=1))
-    return missing_dates
+    def predict(self):
+        """Make predictions using the trained model."""
+        self.prepare_data()
+        x = self.df.values[-PARAMETERS['train_steps']:]
+        predictions = []
 
-def main(ticker='BTC-USD'):
-    try:
-        data_preparator = DataPreparator(ticker)
-        df_scaled, feature_scaler, close_scaler, df_support = data_preparator.prepare_data()
+        for _ in range(self.prediction_steps):
+            x_input = np.expand_dims(x, axis=0)
+            pred = self.model.predict(x_input)
+            predictions.append(pred.flatten()[0])
 
-        model_predictor = ModelPredictor(ticker)
-        predictions_scaled = model_predictor.predict(df_scaled)
-        predictions = model_predictor.inverse_scale_predictions(predictions_scaled)
+            # Update input with the latest prediction
+            new_input = np.append(x[-1, 1:], pred.flatten())
+            x = np.vstack([x[1:], new_input])
 
-        df = pd.read_csv(BASE_DIR / f'data/raw_data_{ticker}.csv', index_col='Date', parse_dates=True)
-        historical_dates = df.index
-        last_historical_date = historical_dates[-1]
-        
-        # Verify that the dates are continuous
-        missing_dates = verify_continuous_dates(historical_dates)
-        if missing_dates:
-            logger.error(f"Missing dates in historical data: {missing_dates}")
-            raise ValueError(f"Missing dates in historical data: {missing_dates}")
+        return np.array(predictions)
 
-
-        # Log the start and end of the historical dates
-        logger.info(f"Historical data starts on: {historical_dates[0]}")
-        logger.info(f"Historical data ends on: {last_historical_date}")
-
-        future_dates = pd.date_range(start=last_historical_date + timedelta(days=1), periods=len(predictions_scaled))
-
-        plot_df = prepare_data_for_plotting(
-            predictions,
-            df['Close'].values[-len(historical_dates):],
-            historical_dates,
-            future_dates
+    def inverse_transform_predictions(self, predictions):
+        """Inverse transform the predictions."""
+        predictions = np.array(predictions).reshape(-1, 1)
+        # Inverse transform using only the 'Close' column scaler
+        scaler_columns = self.df.columns.tolist()
+        close_index = scaler_columns.index(self.COLUMN_TO_PREDICT)
+        full_inverse_scaled = self.feature_scaler.inverse_transform(
+            np.hstack([np.zeros((predictions.shape[0], len(scaler_columns) - 1)), predictions])
         )
+        return full_inverse_scaled[:, close_index]
 
-        # Log the start and end of the future dates
-        logger.info(f"Predictions start on: {future_dates[0]}")
-        logger.info(f"Predictions end on: {future_dates[-1]}")
+    def inverse_transform_historical(self):
+        """Inverse transform the historical data."""
+        # Inverse transform using the feature scaler
+        scaler_columns = self.df.columns.tolist()
+        transformed_data = self.feature_scaler.inverse_transform(self.df[scaler_columns])
+        return pd.DataFrame(transformed_data, columns=scaler_columns, index=self.df.index)
 
+    def save_predictions(self, predictions, file_path):
+        """Save the historical data and predictions to disk."""
+        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        predicted_data = pd.Series(predictions, index=future_dates)
+
+        historical_data = self.inverse_transform_historical()
+        combined_df = pd.concat([historical_data[self.COLUMN_TO_PREDICT], predicted_data], axis=1)
+        combined_df.columns = ['Historical', 'Predicted']
+
+        combined_df.to_csv(file_path, index=True)
+        logger.info(f"Predictions saved at {file_path}")
+
+    def plot_predictions(self, predictions):
+        """Plot the predictions along with the actual data."""
+        plt.style.use('ggplot')
         plt.figure(figsize=(15, 7))
-        plt.plot(plot_df.index, plot_df['Actual'], label='Actual', color='blue')
-        plt.plot(plot_df.index, plot_df['Predicted'], label='Predicted', linestyle='--', color='orange')
+
+        # Combine historical data with predictions
+        actual_data = self.inverse_transform_historical()[self.COLUMN_TO_PREDICT]
+        future_dates = pd.date_range(start=actual_data.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        predicted_data = pd.Series(predictions, index=future_dates)
+
+        plt.plot(actual_data.index, actual_data, label='Actual', color='blue', linewidth=2)
+        plt.plot(predicted_data.index, predicted_data, label='Predicted', linestyle='--', color='orange', linewidth=2)
+
+        plt.fill_between(predicted_data.index, actual_data.iloc[-1], predicted_data, color='gray', alpha=0.2)
+
+        # Annotate max, min, and some significant points
+        plt.scatter(actual_data.idxmax(), actual_data.max(), color='red', marker='o', label='Max Actual')
+        plt.scatter(actual_data.idxmin(), actual_data.min(), color='green', marker='o', label='Min Actual')
+        plt.scatter(actual_data.index[-1], actual_data.iloc[-1], color='purple', marker='o', label='Last Actual')
+        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o', label='First Predicted')
+        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o', label='Last Predicted')
 
         plt.legend()
+        plt.title(f'{self.ticker} Close Price Prediction')
+        plt.xlabel('Date')
+        plt.ylabel('Close Price')
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.xticks(rotation=45)
+
+        # Add a shaded area for prediction period
+        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
+
+        plt.tight_layout()
+
+        # Save plot
+        plot_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_prediction_plot.png'
+        plt.savefig(plot_path, dpi=300)
+        logger.info(f"Prediction plot saved at {plot_path}")
+
         plt.show()
 
-    except Exception as e:
-        logger.error(f"Error in main: {e}")
+    def run(self):
+        """Run the prediction process."""
+        try:
+            predictions_scaled = self.predict()
+            predictions = self.inverse_transform_predictions(predictions_scaled)
+            self.plot_predictions(predictions)
+            predictions_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
+            self.save_predictions(predictions, predictions_path)
+        except Exception as e:
+            logger.error(f"Error in prediction process: {e}", exc_info=True)
+
+
+def main(ticker='BTC-USD', prediction_steps=30):
+    """Main function to run the prediction script."""
+    predictor = ModelPredictor(ticker, prediction_steps)
+    predictor.run()
 
 
 if __name__ == '__main__':

@@ -1,14 +1,24 @@
-# config.py
+"""
+config.py
 
-# base columns
+Configuration file containing constants and parameters for the LSTM model training and prediction.
+
+Sections:
+1. Column Definitions
+2. Column Sets
+3. Model Parameters
+"""
+
+# Column Definitions
+# -------------------
+# Basic columns in the dataset
 OPEN = 'Open'
 HIGH = 'High'
 LOW = 'Low'
 CLOSE = 'Close'
-ADJ_CLOSE = 'Adj Close'
 VOLUME = 'Volume'
 
-# indicator columns
+# Technical indicator columns
 MA50 = 'MA50'
 MA200 = 'MA200'
 RSI = 'RSI'
@@ -24,20 +34,37 @@ FIB_38_2 = 'Fibonacci_38.2%'
 FIB_50 = 'Fibonacci_50%'
 FIB_61_8 = 'Fibonacci_61.8%'
 
-
+# Column Sets
+# -----------
+# Sets of columns for different purposes
 COLUMN_SETS = {
     'to_scale': [
-        OPEN, HIGH, LOW, ADJ_CLOSE, VOLUME,
+        OPEN, HIGH, LOW, CLOSE, VOLUME,
         MA50, MA200, RETURNS, VOLATILITY, MA20,
         UPPER, LOWER, RSI, MACD, RANGE,
         FIB_23_6, FIB_38_2, FIB_50, FIB_61_8
     ],
 
     'basic': [
-        OPEN, HIGH, LOW, CLOSE, ADJ_CLOSE, VOLUME
+        OPEN, HIGH, LOW, CLOSE, VOLUME
     ],
 
     'required': [
         CLOSE
     ]
+}
+
+# Model Parameters
+# ----------------
+# Parameters for the LSTM model
+PARAMETERS = {
+    'neurons': 100,            # Number of neurons in each LSTM layer
+    'dropout': 0.01,           # Dropout rate for regularization
+    'additional_layers': 2,    # Number of additional dense layers after LSTM layers
+    'bidirectional': True,     # Use bidirectional LSTM if True
+    'epochs': 50,              # Number of training epochs
+    'batch_size': 32,          # Batch size for training
+    'train_steps': 90,         # Number of steps (time frames) for each training sample
+    'test_steps': 30,          # Number of steps (time frames) for each test sample
+    'n_folds': 2               # Number of folds for cross-validation
 }

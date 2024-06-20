@@ -10,8 +10,8 @@ venv/
 .vscode
 
 # Data
-#/data/
-#/logs/
-#/models/
-#/scalers/
-#/predictions/
+/data/
+/logs/
+/models/
+/scalers/
+/predictions/
