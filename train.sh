@@ -11,6 +11,3 @@ python3 src/feature_engineering.py
 
 # Train the model
 python3 src/train.py
-
-# Predict the test data
-python3 src/predict.py
