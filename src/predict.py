@@ -36,8 +36,9 @@ class ModelPredictor:
     MODELS_FOLDER = 'models'
     PREDICTIONS_FOLDER = 'predictions'
 
-    def __init__(self, ticker='BTC-USD'):
+    def __init__(self, ticker='BTC-USD', prediction_steps=30):
         self.ticker = ticker
+        self.prediction_steps = prediction_steps
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/raw_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
         self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
@@ -83,9 +84,18 @@ class ModelPredictor:
         """Make predictions using the trained model."""
         self.prepare_data()
         x = self.df.values[-PARAMETERS['train_steps']:]
-        x = np.expand_dims(x, axis=0)
-        predictions = self.model.predict(x)
-        return predictions.flatten()
+        predictions = []
+
+        for _ in range(self.prediction_steps):
+            x_input = np.expand_dims(x, axis=0)
+            pred = self.model.predict(x_input)
+            predictions.append(pred.flatten()[0])
+
+            # Update input with the latest prediction
+            new_input = np.append(x[-1, 1:], pred.flatten())
+            x = np.vstack([x[1:], new_input])
+
+        return np.array(predictions)
 
     def inverse_transform_predictions(self, predictions):
         """Inverse transform the predictions."""
@@ -170,9 +180,9 @@ class ModelPredictor:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
 
 
-def main(ticker='BTC-USD'):
+def main(ticker='BTC-USD', prediction_steps=30):
     """Main function to run the prediction script."""
-    predictor = ModelPredictor(ticker)
+    predictor = ModelPredictor(ticker, prediction_steps)
     predictor.run()
 
 

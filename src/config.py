@@ -66,5 +66,5 @@ PARAMETERS = {
     'batch_size': 32,          # Batch size for training
     'train_steps': 90,         # Number of steps (time frames) for each training sample
     'test_steps': 30,          # Number of steps (time frames) for each test sample
-    'n_folds': 1               # Number of folds for cross-validation
+    'n_folds': 2               # Number of folds for cross-validation
 }
