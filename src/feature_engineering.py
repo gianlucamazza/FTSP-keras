@@ -1,4 +1,3 @@
-# feature_engineering.py
 import sys
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -17,6 +16,7 @@ logger = logger_module.setup_logger('feature_engineering_logger', BASE_DIR / 'lo
 
 
 def validate_input_data(df, required_columns):
+    """Validate that all required columns are present in the DataFrame."""
     missing_columns = set(required_columns) - set(df.columns)
     if missing_columns:
         error_message = f"Missing columns in input data: {missing_columns}"
@@ -25,63 +25,61 @@ def validate_input_data(df, required_columns):
 
 
 def check_data(df, step_description):
+    """Log the shape and sample of the DataFrame at a given step."""
     logger.info(f"Data after {step_description}: shape = {df.shape}")
     logger.info(f"Sample data:\n{df.head()}")
 
 
 def clean_data(df):
-    df.dropna(inplace=True)
-    logger.info("Data cleaned. NaN values handled.")
+    """Clean the DataFrame by removing rows with NaN values."""
+    initial_shape = df.shape
+    df.dropna(inplace=True, how='any')
+    logger.info(f"Data cleaned. NaN values handled. {initial_shape[0] - df.shape[0]} rows removed.")
 
 
 def normalize_features(df, columns_to_normalize):
+    """Normalize specified features in the DataFrame using MinMaxScaler."""
     logger.info("Normalizing features.")
     scaler = MinMaxScaler()
     df[columns_to_normalize] = scaler.fit_transform(df[columns_to_normalize])
     return df, scaler
 
 
-def normalize_close(df):
-    logger.info("Normalizing 'Close' column.")
-    scaler = MinMaxScaler()
-    df[[CLOSE]] = scaler.fit_transform(df[[CLOSE]])
-    return scaler
-
-
-def save_scaler(scaler, ticker, scaler_type='feature'):
-    path = BASE_DIR / f'scalers/{scaler_type}_scaler_{ticker}.pkl'
+def save_scaler(scaler, ticker):
+    """Save the scaler object to disk."""
+    path = BASE_DIR / f'scalers/feature_scaler_{ticker}.pkl'
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(scaler, path)
-    logger.info(f"Scaler saved at {path}")
+    logger.info(f"Feature scaler saved at {path}")
 
 
 def process_and_save_features(df, ticker):
+    """Process features by calculating technical indicators, normalizing, and saving the data and scaler."""
     try:
         logger.info(f"Processing features for {ticker}.")
 
+        # Calculate technical indicators
         df = calculate_technical_indicators(df)
         check_data(df, "calculating technical indicators")
 
+        # Validate input data
         required_columns = COLUMN_SETS['to_scale'] + COLUMN_SETS['required']
         validate_input_data(df, required_columns)
 
+        # Clean data
         clean_data(df)
 
-        columns_to_normalize = [col for col in df.columns if col != CLOSE]
+        columns_to_normalize = df.columns.tolist()
         df, feature_scaler = normalize_features(df, columns_to_normalize)
         check_data(df, "normalizing features")
 
-        close_scaler = normalize_close(df)
-        check_data(df, "normalizing 'Close' column")
-
-        save_scaler(close_scaler, ticker, scaler_type='close')
-        save_scaler(feature_scaler, ticker, scaler_type='feature')
+        save_scaler(feature_scaler, ticker)
 
         scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
         df.to_csv(scaled_data_path, index=True)
         logger.info(f"Scaled data saved at {scaled_data_path}")
     except Exception as e:
-        logger.error(f"Error in process_and_save_features: {e}")
+        logger.error(f"Error in process_and_save_features: {e}", exc_info=True)
         raise
 
 
