@@ -146,11 +146,11 @@ def calculate_metrics(model, x_test, y_test):
 def objective(trial):
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 200),
-        'dropout': trial.suggest_uniform('dropout', 0.1, 0.5),
+        'dropout': trial.suggest_float('dropout', 0.1, 0.5),
         'additional_layers': trial.suggest_int('additional_layers', 0, 2),
         'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
-        'l1_reg': trial.suggest_loguniform('l1_reg', 1e-6, 1e-2),
-        'l2_reg': trial.suggest_loguniform('l2_reg', 1e-6, 1e-2),
+        'l1_reg': trial.suggest_float('l1_reg', 1e-6, 1e-2),
+        'l2_reg': trial.suggest_float('l2_reg', 1e-6, 1e-2),
         'epochs': PARAMETERS['epochs'],
         'batch_size': PARAMETERS['batch_size'],
         'train_steps': PARAMETERS['train_steps'],
@@ -184,9 +184,9 @@ def objective(trial):
     return np.mean(scores)
 
 
-def optimize_hyperparameters():
+def optimize_hyperparameters(n_trials=20):
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=20)  # Numero di trial da eseguire
+    study.optimize(objective, n_trials=n_trials)
 
     print("Best trial:")
     trial = study.best_trial
@@ -202,6 +202,8 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         parameters = PARAMETERS
 
     logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
+
+    optimize_hyperparameters(20)
 
     trainer = ModelTrainer(ticker)
 
