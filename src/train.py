@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import time
+import optuna
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.model_selection import TimeSeriesSplit
@@ -90,7 +91,7 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         dropout=parameters['dropout'],
         additional_layers=parameters['additional_layers'],
         bidirectional=parameters['bidirectional'],
-        regularizer=l1_l2(1e-5)
+        regularizer=l1_l2(parameters.get('l1_reg', 1e-5), parameters.get('l2_reg', 1e-5))
     )
 
     # Callbacks
@@ -140,6 +141,59 @@ def calculate_metrics(model, x_test, y_test):
     mape = mean_absolute_percentage_error(y_test, y_pred)
     logger.info(f"Evaluation metrics - RMSE: {rmse:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
     return rmse, mae, mape
+
+
+def objective(trial):
+    parameters = {
+        'neurons': trial.suggest_int('neurons', 50, 200),
+        'dropout': trial.suggest_uniform('dropout', 0.1, 0.5),
+        'additional_layers': trial.suggest_int('additional_layers', 0, 2),
+        'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
+        'l1_reg': trial.suggest_loguniform('l1_reg', 1e-6, 1e-2),
+        'l2_reg': trial.suggest_loguniform('l2_reg', 1e-6, 1e-2),
+        'epochs': PARAMETERS['epochs'],
+        'batch_size': PARAMETERS['batch_size'],
+        'train_steps': PARAMETERS['train_steps'],
+        'early_stopping_patience': PARAMETERS['early_stopping_patience'],
+        'n_folds': PARAMETERS['n_folds']
+    }
+
+    trainer = ModelTrainer(ticker='BTC-USD')
+    x, y = trainer.x, trainer.y
+
+    tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
+    splits = tscv.split(x)
+
+    scores = []
+    for i, (train_index, val_index) in enumerate(splits):
+        x_train, x_val = x[train_index], x[val_index]
+        y_train, y_val = y[train_index], y[val_index]
+
+        model, history = train_model(
+            x_train, y_train, x_val, y_val,
+            model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
+            ticker=trainer.ticker,
+            fold_index=i,
+            parameters=parameters
+        )
+
+        y_pred = model.predict(x_val)
+        mse = mean_squared_error(y_val, y_pred)
+        scores.append(mse)
+
+    return np.mean(scores)
+
+
+def optimize_hyperparameters():
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=20)  # Numero di trial da eseguire
+
+    print("Best trial:")
+    trial = study.best_trial
+    print(f"  Value: {trial.value:.4f}")
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print(f"    {key}: {value}")
 
 
 def main(ticker='BTC-USD', worker=None, parameters=None):
