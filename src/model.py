@@ -1,4 +1,3 @@
-# model.py
 import datetime
 from pathlib import Path
 from keras.models import Sequential
@@ -14,7 +13,7 @@ logger = logger.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
 
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
                 learning_rate=0.001, loss='mean_squared_error', metrics=None,
-                l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
+                l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False, regularizer=None):
 
     logger.info(f"Building the model with parameters:")
     logger.info(f"  - input_shape: {input_shape}")
@@ -37,7 +36,7 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
     # LSTM layers
     lstm_layer = LSTM(
         neurons, return_sequences=True,
-        kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg), input_shape=input_shape
+        kernel_regularizer=regularizer, input_shape=input_shape
     )
     if bidirectional:
         model.add(Bidirectional(lstm_layer))
@@ -51,7 +50,7 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
     for _ in range(additional_layers):
         lstm_layer = LSTM(
             neurons, return_sequences=True,
-            kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg)
+            kernel_regularizer=regularizer
         )
         if bidirectional:
             model.add(Bidirectional(lstm_layer))
