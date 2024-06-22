@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def setup_logger(name, relative_log_folder, log_file, level=logging.INFO):
-    base_dir = Path(__file__).parent.parent
+    base_dir = Path(__file__).resolve().parent.parent
     log_folder = base_dir / relative_log_folder
     log_folder.mkdir(parents=True, exist_ok=True)
 
@@ -12,8 +12,7 @@ def setup_logger(name, relative_log_folder, log_file, level=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    # Check if logger already has handlers
-    if not logger.handlers:
+    if not logger.hasHandlers():
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         file_handler = logging.FileHandler(log_path)
