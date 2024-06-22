@@ -101,4 +101,4 @@ def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
 
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD', start_date='2022-01-01', end_date=None)
+    main(ticker='BTC-USD', start_date='2015-01-01', end_date=None)
