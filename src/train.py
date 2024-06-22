@@ -1,11 +1,10 @@
-# train.py
 import sys
 import pandas as pd
 import numpy as np
 import joblib
 import time
 from pathlib import Path
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.model_selection import TimeSeriesSplit
 from model import build_model, prepare_callbacks
 from data_utils import prepare_data
@@ -30,7 +29,7 @@ class ModelTrainer:
         self.ticker = ticker
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
-        
+
         logger.info(f"Initializing ModelTrainer for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
         logger.info(f"Scaler path: {self.scaler_path}")
@@ -42,19 +41,26 @@ class ModelTrainer:
 
     def load_scaler(self):
         """Load the feature scaler from disk."""
-        logger.info(f"Loading dataset from {self.data_path}")
+        logger.info(f"Loading scaler from {self.scaler_path}")
         try:
             return joblib.load(self.scaler_path)
         except FileNotFoundError as e:
             logger.error(f"Scaler file not found: {e}")
             raise
+        except Exception as e:
+            logger.error(f"Error loading scaler: {e}", exc_info=True)
+            raise
 
     def load_dataset(self):
         """Load the dataset from disk."""
+        logger.info(f"Loading dataset from {self.data_path}")
         try:
             df = pd.read_csv(self.data_path, index_col='Date')
             df.ffill(inplace=True)
             return df
+        except FileNotFoundError as e:
+            logger.error(f"Dataset file not found: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error loading dataset: {e}", exc_info=True)
             raise
@@ -85,34 +91,29 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
     )
     callbacks = prepare_callbacks(model_dir, f"{ticker}_fold_{fold_index}")
 
-    for epoch in range(parameters['epochs']):
-        if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
-            logger.info("Training stopped early.")
-            return None
-        history = model.fit(
-            x_train, y_train, epochs=1, batch_size=parameters['batch_size'],
-            validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
-        )
-        logger.info(f"Epoch {epoch+1}/{parameters['epochs']} - Training loss: {history.history['loss'][-1]:.4f}, Validation loss: {history.history['val_loss'][-1]:.4f}")
-        if worker:
-            progress = ((epoch + 1) / parameters['epochs']) * 100
-            worker.update_progress(int(progress))
+    history = model.fit(
+        x_train, y_train, epochs=parameters['epochs'], batch_size=parameters['batch_size'],
+        validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
+    )
 
+    logger.info(f"Training completed for fold {fold_index}.")
     model_path = Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"
     model.save(model_path)
-    logger.info(f"Fold {fold_index} model saved at {model_path}")
+    logger.info(f"Model saved at {model_path}")
 
     end_time = time.time()
     logger.info(f"Training for fold {fold_index} completed in {end_time - start_time:.2f} seconds.")
     return model, history
 
 
-def calculate_rmse(model, x_test, y_test):
-    """Calculate RMSE for the model."""
+def calculate_metrics(model, x_test, y_test):
+    """Calculate evaluation metrics for the model."""
     y_pred = model.predict(x_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    logger.info(f"RMSE: {rmse:.4f}")
-    return rmse
+    mae = mean_absolute_error(y_test, y_pred)
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+    logger.info(f"Evaluation metrics - RMSE: {rmse:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
+    return rmse, mae, mape
 
 
 def main(ticker='BTC-USD', worker=None, parameters=None):
@@ -136,14 +137,14 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
 
     best_val_loss = np.inf
     best_model = None
-    rmse_list = []
+    metrics_list = []
 
     for i, (train_index, test_index) in enumerate(splits):
         if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
             logger.info("Training stopped early.")
             return
-        percent_complete = (i / n_splits) * 100
-        logger.info(f"Training fold {i + 1}/{n_splits} ({percent_complete:.2f}% complete)")
+
+        logger.info(f"Training fold {i + 1}/{n_splits}")
 
         x_train, x_test = trainer.x[train_index], trainer.x[test_index]
         y_train, y_test = trainer.y[train_index], trainer.y[test_index]
@@ -165,24 +166,20 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
             best_val_loss = current_val_loss
             best_model = model
 
+        rmse, mae, mape = calculate_metrics(model, x_test, y_test)
+        metrics_list.append((rmse, mae, mape))
+
     if best_model:
         best_model_path = BASE_DIR / trainer.MODELS_FOLDER / f"model_{trainer.ticker}_best.keras"
         best_model.save(best_model_path)
         logger.info(f"Best model saved at {best_model_path}")
 
-    for _, test_index in splits:
-        if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
-            logger.info("Evaluation stopped early.")
-            return
-        x_test = trainer.x[test_index]
-        y_test = trainer.y[test_index]
-        rmse = calculate_rmse(best_model, x_test, y_test)
-        if rmse is not None:
-            rmse_list.append(rmse)
-
-    if rmse_list:
-        average_rmse = np.mean(rmse_list)
-        logger.info(f"Average RMSE across all folds: {average_rmse:.2f}")
+    if metrics_list:
+        average_rmse = np.mean([m[0] for m in metrics_list])
+        average_mae = np.mean([m[1] for m in metrics_list])
+        average_mape = np.mean([m[2] for m in metrics_list])
+        logger.info(
+            f"Average metrics across all folds - RMSE: {average_rmse:.2f}, MAE: {average_mae:.2f}, MAPE: {average_mape:.2f}")
 
     logger.info("Training process completed.")
 
