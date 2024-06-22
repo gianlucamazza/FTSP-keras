@@ -58,13 +58,13 @@ COLUMN_SETS = {
 # ----------------
 # Parameters for the LSTM model
 PARAMETERS = {
-    'neurons': 100,            # Number of neurons in each LSTM layer
-    'dropout': 0.2,            # Dropout rate for regularization
-    'additional_layers': 2,    # Number of additional dense layers after LSTM layers
+    'neurons': 150,            # Number of neurons in each LSTM layer
+    'dropout': 0.3,            # Dropout rate for regularization
+    'additional_layers': 1,    # Number of additional dense layers after LSTM layers
     'bidirectional': True,     # Use bidirectional LSTM if True
-    'epochs': 50,              # Number of training epochs
+    'epochs': 100,              # Number of training epochs
     'batch_size': 32,          # Batch size for training
     'train_steps': 90,         # Number of steps (time frames) for each training sample
     'test_steps': 30,          # Number of steps (time frames) for each test sample
-    'n_folds': 10              # Number of folds for cross-validation
+    'n_folds': 5              # Number of folds for cross-validation
 }
