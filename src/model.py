@@ -1,15 +1,14 @@
 # model.py
 import datetime
+from pathlib import Path
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout, BatchNormalization
+from keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
 from keras.optimizers import Adam
 from keras.regularizers import l1_l2
-from keras.layers import Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-from pathlib import Path
-import logger as logger
+import logger
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 logger = logger.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
 
 
@@ -22,31 +21,47 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 
     model = Sequential()
 
+    # LSTM layers
     lstm_layer = LSTM(
         neurons, return_sequences=True,
         kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg), input_shape=input_shape
     )
-    layer_to_add = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
-    model.add(layer_to_add)
+    if bidirectional:
+        model.add(Bidirectional(lstm_layer))
+    else:
+        model.add(lstm_layer)
 
     model.add(Dropout(dropout))
     model.add(BatchNormalization())
 
+    # Additional LSTM layers
     for _ in range(additional_layers):
-        lstm_layer = LSTM(neurons, return_sequences=True, kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg))
-        layer_to_add = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
-        model.add(layer_to_add)
+        lstm_layer = LSTM(
+            neurons, return_sequences=True,
+            kernel_regularizer=l1_l2(l1=l1_reg, l2=l2_reg)
+        )
+        if bidirectional:
+            model.add(Bidirectional(lstm_layer))
+        else:
+            model.add(lstm_layer)
+
         model.add(Dropout(dropout))
         model.add(BatchNormalization())
 
-    lstm_layer = LSTM(neurons, return_sequences=False)
-    final_layer = Bidirectional(lstm_layer, merge_mode='concat') if bidirectional else lstm_layer
-    model.add(final_layer)
+    # Final LSTM layer
+    lstm_layer = LSTM(neurons)
+    if bidirectional:
+        model.add(Bidirectional(lstm_layer))
+    else:
+        model.add(lstm_layer)
 
     model.add(Dropout(dropout))
     model.add(BatchNormalization())
+
+    # Output layer
     model.add(Dense(1))
 
+    # Compile model
     opt = Adam(learning_rate=learning_rate) if optimizer == 'adam' else optimizer
     model.compile(optimizer=opt, loss=loss, metrics=metrics)
 
@@ -56,8 +71,8 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 def prepare_callbacks(model_dir, ticker, monitor='val_loss', epoch=0):
     logger.info(f"Preparing callbacks for {ticker}.")
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_dir = Path(BASE_DIR / f'logs/{ticker}/{timestamp}')
-    model_dir = Path(BASE_DIR / model_dir)
+    log_dir = BASE_DIR / f'logs/{ticker}/{timestamp}'
+    model_dir = BASE_DIR / model_dir
     log_dir.mkdir(parents=True, exist_ok=True)
 
     filepath = model_dir / f'model_{epoch:02d}-{monitor}.keras'
@@ -68,4 +83,3 @@ def prepare_callbacks(model_dir, ticker, monitor='val_loss', epoch=0):
         TensorBoard(log_dir=str(log_dir), histogram_freq=1)
     ]
     return callbacks
-
