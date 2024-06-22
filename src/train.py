@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from model import build_model, prepare_callbacks
 from data_utils import prepare_data
 import logger as logger_module
@@ -89,11 +90,32 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         additional_layers=parameters['additional_layers'],
         bidirectional=parameters['bidirectional']
     )
-    callbacks = prepare_callbacks(model_dir, f"{ticker}_fold_{fold_index}")
+
+    # Callbacks
+    model_checkpoint = ModelCheckpoint(
+        filepath=str(Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"),
+        monitor='val_loss',
+        save_best_only=True,
+        save_weights_only=False,
+        verbose=1
+    )
+
+    early_stopping = EarlyStopping(
+        monitor='val_loss',
+        patience=parameters['early_stopping_patience'],
+        verbose=1,
+        restore_best_weights=True
+    )
+
+    callbacks = [model_checkpoint, early_stopping]
 
     history = model.fit(
-        x_train, y_train, epochs=parameters['epochs'], batch_size=parameters['batch_size'],
-        validation_data=(x_val, y_val), callbacks=callbacks, verbose=1
+        x_train, y_train,
+        epochs=parameters['epochs'],
+        batch_size=parameters['batch_size'],
+        validation_data=(x_val, y_val),
+        callbacks=callbacks,
+        verbose=1
     )
 
     logger.info(f"Training completed for fold {fold_index}.")
