@@ -15,7 +15,20 @@ logger = logger.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
                 learning_rate=0.001, loss='mean_squared_error', metrics=None,
                 l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
-    logger.info("Building the model.")
+
+    logger.info(f"Building the model with parameters:")
+    logger.info(f"  - input_shape: {input_shape}")
+    logger.info(f"  - neurons: {neurons}")
+    logger.info(f"  - dropout: {dropout}")
+    logger.info(f"  - optimizer: {optimizer}")
+    logger.info(f"  - learning_rate: {learning_rate}")
+    logger.info(f"  - loss: {loss}")
+    logger.info(f"  - metrics: {metrics}")
+    logger.info(f"  - l1_reg: {l1_reg}")
+    logger.info(f"  - l2_reg: {l2_reg}")
+    logger.info(f"  - additional_layers: {additional_layers}")
+    logger.info(f"  - bidirectional: {bidirectional}")
+
     if metrics is None:
         metrics = ['mae']
 
