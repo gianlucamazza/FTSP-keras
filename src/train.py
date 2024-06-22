@@ -6,7 +6,8 @@ import time
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.model_selection import TimeSeriesSplit
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+from tensorflow.keras.regularizers import l1_l2
 from model import build_model, prepare_callbacks
 from data_utils import prepare_data
 import logger as logger_module
@@ -88,7 +89,8 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         neurons=parameters['neurons'],
         dropout=parameters['dropout'],
         additional_layers=parameters['additional_layers'],
-        bidirectional=parameters['bidirectional']
+        bidirectional=parameters['bidirectional'],
+        regularizer=l1_l2(1e-5)
     )
 
     # Callbacks
@@ -107,7 +109,9 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         restore_best_weights=True
     )
 
-    callbacks = [model_checkpoint, early_stopping]
+    tensorboard_callback = TensorBoard(log_dir=str(BASE_DIR / 'logs' / f"fold_{fold_index}"), histogram_freq=1)
+
+    callbacks = [model_checkpoint, early_stopping, tensorboard_callback]
 
     history = model.fit(
         x_train, y_train,

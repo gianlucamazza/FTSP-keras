@@ -83,6 +83,11 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 
 def prepare_callbacks(model_dir, ticker, monitor='val_loss', epoch=0):
     logger.info(f"Preparing callbacks for {ticker}.")
+    logger.info(f"  - model_dir: {model_dir}")
+    logger.info(f"  - ticker: {ticker}")
+    logger.info(f"  - monitor: {monitor}")
+    logger.info(f"  - epoch: {epoch}")
+
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     log_dir = BASE_DIR / f'logs/{ticker}/{timestamp}'
     model_dir = BASE_DIR / model_dir
