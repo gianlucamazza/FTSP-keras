@@ -8,6 +8,7 @@ from sklearn.model_selection import TimeSeriesSplit
 import logger as logger_module
 from train_utils import load_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
+from objective import optimize_hyperparameters
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -20,10 +21,14 @@ logger = logger_module.setup_logger('train_logger', BASE_DIR / 'logs', 'train.lo
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
+
 def main(ticker='BTC-USD', worker=None, parameters=None):
     """Main function to train the model."""
     if parameters is None:
+        logger.info("Optimizing hyperparameters...")
+        optimize_hyperparameters(n_trials=50)
         parameters = load_best_params(BASE_DIR / 'best_params.json')
+        logger.info(f"Optimized parameters: {parameters}")
 
     logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
 

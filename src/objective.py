@@ -11,7 +11,7 @@ from train_model import train_model, ModelTrainer
 from train_utils import save_best_params
 
 BASE_DIR = Path(__file__).parent.parent
-logger = setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
+logger = setup_logger('objective_logger', BASE_DIR / 'logs' / 'objective.log')
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -61,14 +61,17 @@ def objective(trial: optuna.trial.Trial) -> float:
         mse = mean_squared_error(y_val, y_pred)
         scores.append(mse)
 
+    # Log metrics to TensorBoard
+    trial.report(np.mean(scores), step=i)
+
     return float(np.mean(scores))
 
 
 def optimize_hyperparameters(n_trials: int = 50) -> None:
     logger.info("Optimizing hyperparameters")
-    tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard'
+    tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
-    tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='mse')
+    tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=n_trials, callbacks=[tensorboard_callback])
@@ -84,3 +87,7 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     best_params_path = BASE_DIR / 'best_params.json'
     save_best_params(trial.params, best_params_path)
     logger.info(f"Best parameters saved at {best_params_path}")
+
+
+if __name__ == '__main__':
+    optimize_hyperparameters()
