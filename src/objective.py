@@ -22,7 +22,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
         'l1_reg': trial.suggest_float('l1_reg', 1e-6, 1e-2),
         'l2_reg': trial.suggest_float('l2_reg', 1e-6, 1e-2),
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-2),
+        'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-2, log=True),
         'epochs': PARAMETERS['epochs'],
         'batch_size': PARAMETERS['batch_size'],
         'train_steps': PARAMETERS['train_steps'],
