@@ -65,7 +65,7 @@ def objective(trial: optuna.trial.Trial) -> float:
 
 
 def optimize_hyperparameters(n_trials: int = 50) -> None:
-    tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
+    tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='mse')
 
