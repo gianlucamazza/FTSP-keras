@@ -11,7 +11,7 @@ from train_model import train_model, ModelTrainer
 from train_utils import save_best_params
 
 BASE_DIR = Path(__file__).parent.parent
-logger = setup_logger('objective_logger', BASE_DIR / 'logs' / 'objective.log')
+logger = setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
 
 
 def objective(trial: optuna.trial.Trial) -> float:
