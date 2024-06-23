@@ -8,7 +8,7 @@ from config import PARAMETERS
 import logger as logger_module
 
 BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('train_utils_logger', BASE_DIR / 'logs', 'train_utils.log')
+logger = logger_module.setup_logger('train_utils_logger', BASE_DIR / 'logs' / 'train_utils.log')
 
 
 def save_best_params(params, path):
