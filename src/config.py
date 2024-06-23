@@ -17,6 +17,7 @@ HIGH = 'High'
 LOW = 'Low'
 CLOSE = 'Close'
 VOLUME = 'Volume'
+TREND = 'Trend'
 
 # Technical indicator columns
 MA50 = 'MA50'
@@ -42,7 +43,7 @@ COLUMN_SETS = {
         OPEN, HIGH, LOW, CLOSE, VOLUME,
         MA50, MA200, RETURNS, VOLATILITY, MA20,
         UPPER, LOWER, RSI, MACD, RANGE,
-        FIB_23_6, FIB_38_2, FIB_50, FIB_61_8
+        FIB_23_6, FIB_38_2, FIB_50, FIB_61_8, TREND
     ],
 
     'basic': [

@@ -55,5 +55,6 @@ def calculate_technical_indicators(df):
     df['RSI'] = calculate_rsi(df['Close'])
     df['MACD'] = calculate_macd(df['Close'])
     df = calculate_fibonacci_levels(df, window=50)
+    df['Trend'] = (df['MA50'] < df['Close']).astype(int)
 
     return df
