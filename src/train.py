@@ -1,13 +1,14 @@
 import sys
 from pathlib import Path
 
+import tensorflow as tf
+from tensorflow.keras import mixed_precision
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 
 import logger as logger_module
 from train_utils import load_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
-from objective import optimize_hyperparameters
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -16,6 +17,9 @@ sys.path.append(str(project_dir))
 BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_logger', BASE_DIR / 'logs', 'train.log')
 
+# Enable mixed precision training
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
 
 def main(ticker='BTC-USD', worker=None, parameters=None):
     """Main function to train the model."""

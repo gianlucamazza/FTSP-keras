@@ -1,11 +1,12 @@
 import sys
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from config import COLUMN_SETS, CLOSE
-from technical_indicators import calculate_technical_indicators
 import joblib
 from pathlib import Path
+import featuretools as ft
 import logger as logger_module
+from config import COLUMN_SETS, CLOSE
+from technical_indicators import calculate_technical_indicators
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -69,14 +70,24 @@ def process_and_save_features(df, ticker):
         # Clean data
         clean_data(df)
 
-        columns_to_normalize = df.columns.tolist()
-        df, feature_scaler = normalize_features(df, columns_to_normalize)
-        check_data(df, "normalizing features")
+        # Create an entity set and add the dataframe as an entity
+        es = ft.EntitySet(id='financial_data')
+        es = es.add_dataframe(dataframe_name='data', dataframe=df, index='Date', make_index=False)
+
+        # Run deep feature synthesis
+        feature_matrix, feature_defs = ft.dfs(entityset=es, target_dataframe_name='data', max_depth=2)
+        logger.info(f"Featuretools created {len(feature_defs)} features.")
+        check_data(feature_matrix, "creating features with Featuretools")
+
+        # Normalize features
+        columns_to_normalize = feature_matrix.columns.tolist()
+        feature_matrix, feature_scaler = normalize_features(feature_matrix, columns_to_normalize)
+        check_data(feature_matrix, "normalizing features")
 
         save_scaler(feature_scaler, ticker)
 
         scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
-        df.to_csv(scaled_data_path, index=True)
+        feature_matrix.to_csv(scaled_data_path, index=True)
         logger.info(f"Scaled data saved at {scaled_data_path}")
     except Exception as e:
         logger.error(f"Error in process_and_save_features: {e}", exc_info=True)
