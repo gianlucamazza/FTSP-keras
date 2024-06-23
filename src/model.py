@@ -1,20 +1,21 @@
 import datetime
 from pathlib import Path
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
+from keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional, Input
 from keras.optimizers import Adam
 from keras.regularizers import l1_l2
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-import logger
+import logger as logger_module
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-logger = logger.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
-
+logger = logger_module.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
 
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
                 learning_rate=0.001, loss='mean_squared_error', metrics=None,
-                l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False, regularizer=None):
-
+                l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
+    """
+    Build and compile an LSTM model with the given parameters.
+    """
     logger.info(f"Building the model with parameters:")
     logger.info(f"  - input_shape: {input_shape}")
     logger.info(f"  - neurons: {neurons}")
@@ -33,11 +34,11 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 
     model = Sequential()
 
+    # Input layer
+    model.add(Input(shape=input_shape))
+
     # LSTM layers
-    lstm_layer = LSTM(
-        neurons, return_sequences=True,
-        kernel_regularizer=regularizer, input_shape=input_shape
-    )
+    lstm_layer = LSTM(neurons, return_sequences=True, kernel_regularizer=l1_l2(l1_reg, l2_reg))
     if bidirectional:
         model.add(Bidirectional(lstm_layer))
     else:
@@ -48,10 +49,7 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 
     # Additional LSTM layers
     for _ in range(additional_layers):
-        lstm_layer = LSTM(
-            neurons, return_sequences=True,
-            kernel_regularizer=regularizer
-        )
+        lstm_layer = LSTM(neurons, return_sequences=True, kernel_regularizer=l1_l2(l1_reg, l2_reg))
         if bidirectional:
             model.add(Bidirectional(lstm_layer))
         else:
@@ -79,8 +77,10 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
 
     return model
 
-
 def prepare_callbacks(model_dir, ticker, monitor='val_loss', epoch=0):
+    """
+    Prepare callbacks for training the model.
+    """
     logger.info(f"Preparing callbacks for {ticker}.")
     logger.info(f"  - model_dir: {model_dir}")
     logger.info(f"  - ticker: {ticker}")
