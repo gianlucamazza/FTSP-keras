@@ -36,7 +36,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
 
     n_splits = parameters['n_folds']
     tscv = TimeSeriesSplit(n_splits=n_splits)
-    splits = tscv.split(trainer.x)
+    splits = list(tscv.split(trainer.x))
 
     logger.info(f"Number of splits: {n_splits}")
 
