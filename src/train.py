@@ -22,7 +22,7 @@ policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
 
-def main(ticker='BTC-USD', worker=None, parameters=None):
+def main(ticker='BTC-USD', worker=None, parameters=None, trial_id=None):
     """Main function to train the model."""
     if parameters is None:
         logger.info("Optimizing hyperparameters...")
@@ -64,6 +64,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
                 model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
                 ticker=trainer.ticker,
                 fold_index=i,
+                trial_id=trial_id if trial_id is not None else 0,
                 parameters=parameters,
                 worker=worker
             )
