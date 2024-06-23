@@ -24,13 +24,6 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
 
     logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
 
-    # Optimize hyperparameters if not provided
-    if parameters is None:
-        logger.info("Optimizing hyperparameters...")
-        optimize_hyperparameters(20)
-        parameters = load_best_params(BASE_DIR / 'best_params.json')
-        logger.info(f"Optimized parameters: {parameters}")
-
     trainer = ModelTrainer(ticker)
 
     n_splits = parameters['n_folds']
