@@ -78,6 +78,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_model = model
+            logger.info(f"New best model found for fold {i + 1} with validation loss {val_loss:.4f}")
 
         # Calculate and log metrics
         rmse, mae, mape = calculate_metrics(model, x_test, y_test)
