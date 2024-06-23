@@ -1,9 +1,9 @@
+import optuna
+from optuna.integration.tensorboard import TensorBoardCallback
 import numpy as np
 from pathlib import Path
-
 from keras.src.losses import mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit
-import optuna
 from train_model import train_model, ModelTrainer
 from config import PARAMETERS
 from train_utils import calculate_metrics, save_best_params
@@ -55,8 +55,10 @@ def objective(trial):
 
 
 def optimize_hyperparameters(n_trials=20):
+    tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
+    tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='mse')
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials, callbacks=[tensorboard_callback])
 
     print("Best trial:")
     trial = study.best_trial

@@ -3,8 +3,9 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
+
 import logger as logger_module
-from train_utils import load_best_params, save_best_params, calculate_metrics
+from train_utils import load_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
 

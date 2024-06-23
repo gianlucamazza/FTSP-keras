@@ -1,16 +1,16 @@
 import time
-import joblib
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras.regularizers import l1_l2
-from model import build_model
-from config import COLUMN_SETS
+
+from config import COLUMN_SETS, PARAMETERS
 import logger as logger_module
 from data_utils import prepare_data
-from config import PARAMETERS
+from model import build_model
 
 BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_model_logger', BASE_DIR / 'logs', 'train_model.log')
@@ -31,6 +31,9 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         l2_reg=parameters.get('l2_reg', 1e-5)
     )
 
+    tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
+    tensorboard_callback = TensorBoard(log_dir=str(tensorboard_log_dir), histogram_freq=1)
+
     # Callbacks
     model_checkpoint = ModelCheckpoint(
         filepath=str(Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"),
@@ -46,8 +49,6 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         verbose=1,
         restore_best_weights=True
     )
-
-    tensorboard_callback = TensorBoard(log_dir=str(BASE_DIR / 'logs' / f"fold_{fold_index}"), histogram_freq=1)
 
     callbacks = [model_checkpoint, early_stopping, tensorboard_callback]
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
+
 from config import PARAMETERS
 import logger as logger_module
 
