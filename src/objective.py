@@ -38,14 +38,16 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     x, y = trainer.x, trainer.y
     tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
-    splits = tscv.split(x)
+    splits = list(tscv.split(x))
 
     scores = []
+    trial_id = trial.number
+    last_step = 0
+
     for i, (train_index, val_index) in enumerate(splits):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
 
-        trial_id = trial.number
         try:
             model, history = train_model(
                 x_train, y_train, x_val, y_val,
@@ -62,9 +64,11 @@ def objective(trial: optuna.trial.Trial) -> float:
         y_pred = model.predict(x_val)
         mse = mean_squared_error(y_val, y_pred)
         scores.append(mse)
+        last_step = i
 
-    # Log metrics to TensorBoard
-    trial.report(np.mean(scores), step=i)
+    if scores:
+        # Log metrics to TensorBoard
+        trial.report(np.mean(scores), step=last_step)
 
     return float(np.mean(scores))
 
