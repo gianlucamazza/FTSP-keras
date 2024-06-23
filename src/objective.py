@@ -30,6 +30,8 @@ def objective(trial: optuna.trial.Trial) -> float:
         'n_folds': PARAMETERS['n_folds']
     }
 
+    logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
+
     try:
         trainer = ModelTrainer(ticker='BTC-USD')
     except Exception as e:
@@ -45,6 +47,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     last_step = 0
 
     for i, (train_index, val_index) in enumerate(splits):
+        logger.info(f"Starting fold {i} for trial {trial_id}")
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
 
@@ -66,11 +69,16 @@ def objective(trial: optuna.trial.Trial) -> float:
         scores.append(mse)
         last_step = i
 
-    if scores:
-        # Log metrics to TensorBoard
-        trial.report(np.mean(scores), step=last_step)
+        logger.info(f"Completed fold {i} for trial {trial_id} with MSE: {mse}")
 
-    return float(np.mean(scores))
+    if scores:
+        average_score = np.mean(scores)
+        trial.report(average_score, step=last_step)
+        logger.info(f"Trial {trial_id} completed with average MSE: {average_score}")
+    else:
+        logger.warning(f"No valid scores obtained for trial {trial_id}")
+
+    return float(np.mean(scores)) if scores else float('inf')
 
 
 def optimize_hyperparameters(n_trials: int = 50) -> None:
@@ -78,12 +86,12 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
 
-    # Note: TensorBoardCallback is experimental and its interface may change in the future.
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=n_trials, callbacks=[tensorboard_callback])
 
+    logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
     trial = study.best_trial
     logger.info(f"  Value: {trial.value:.4f}")
