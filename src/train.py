@@ -1,29 +1,35 @@
 import sys
 from pathlib import Path
-
 from tensorflow.keras import mixed_precision
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
-
 import logger as logger_module
 from train_utils import load_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
 
-# Add the project directory to the sys.path
+# Add the project directory to the sys.path for module resolution
 project_dir = Path(__file__).resolve().parent
 sys.path.append(str(project_dir))
 
 BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_logger', BASE_DIR / 'logs', 'train.log')
 
-# Enable mixed precision training
+# Enable mixed precision training for performance improvement
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
 
 def main(ticker='BTC-USD', worker=None, parameters=None, trial_id=None):
-    """Main function to train the model."""
+    """
+    Main function to train the model.
+
+    Args:
+        ticker (str): The ticker symbol for the financial instrument.
+        worker (optional): A worker object to manage early stopping.
+        parameters (dict, optional): Hyperparameters for the model.
+        trial_id (int, optional): The trial ID from hyperparameter optimization.
+    """
     if parameters is None:
         logger.info("Optimizing hyperparameters...")
         optimize_hyperparameters(n_trials=50)
@@ -32,8 +38,10 @@ def main(ticker='BTC-USD', worker=None, parameters=None, trial_id=None):
 
     logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
 
+    # Initialize ModelTrainer
     trainer = ModelTrainer(ticker)
 
+    # Set up cross-validation with TimeSeriesSplit
     n_splits = parameters['n_folds']
     tscv = TimeSeriesSplit(n_splits=n_splits)
     splits = list(tscv.split(trainer.x))
@@ -49,9 +57,12 @@ def main(ticker='BTC-USD', worker=None, parameters=None, trial_id=None):
             logger.info("Training stopped early.")
             return
 
+        # Log the training and validation dates for each fold
         train_dates = trainer.df.index[train_index]
         val_dates = trainer.df.index[test_index]
-        logger.info(f"Fold {i + 1}/{n_splits} - Train dates: {train_dates[0]} to {train_dates[-1]}, Val dates: {val_dates[0]} to {val_dates[-1]}")
+        logger.info(
+            f"Fold {i + 1}/{n_splits} - Train dates: {train_dates[0]} to {train_dates[-1]}, "
+            f"Val dates: {val_dates[0]} to {val_dates[-1]}")
 
         logger.info(f"Training fold {i + 1}/{n_splits}")
 
