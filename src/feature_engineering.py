@@ -75,7 +75,7 @@ def process_and_save_features(df, ticker):
         es = es.add_dataframe(dataframe_name='data', dataframe=df, index='Date', make_index=False)
 
         # Run deep feature synthesis
-        feature_matrix, feature_defs = ft.dfs(entityset=es, target_dataframe_name='data', max_depth=2)
+        feature_matrix, feature_defs = ft.dfs(entityset=es, target_dataframe_name='data', max_depth=1)
         logger.info(f"Featuretools created {len(feature_defs)} features.")
         check_data(feature_matrix, "creating features with Featuretools")
 
