@@ -49,6 +49,10 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
             logger.info("Training stopped early.")
             return
 
+        train_dates = trainer.df.index[train_index]
+        val_dates = trainer.df.index[test_index]
+        logger.info(f"Fold {i + 1}/{n_splits} - Train dates: {train_dates[0]} to {train_dates[-1]}, Val dates: {val_dates[0]} to {val_dates[-1]}")
+
         logger.info(f"Training fold {i + 1}/{n_splits}")
 
         x_train, x_test = trainer.x[train_index], trainer.x[test_index]
