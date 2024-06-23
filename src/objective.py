@@ -1,19 +1,21 @@
+from pathlib import Path
+
+import numpy as np
 import optuna
 from optuna.integration.tensorboard import TensorBoardCallback
-import numpy as np
-from pathlib import Path
-from keras.src.losses import mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit
-from train_model import train_model, ModelTrainer
+from sklearn.metrics import mean_squared_error
+
 from config import PARAMETERS
-from train_utils import calculate_metrics, save_best_params
-import logger as logger_module
+from logger import setup_logger
+from train_model import train_model, ModelTrainer
+from train_utils import save_best_params
 
 BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
+logger = setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
 
 
-def objective(trial):
+def objective(trial: optuna.trial.Trial) -> float:
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 200),
         'dropout': trial.suggest_float('dropout', 0.1, 0.5),
@@ -28,9 +30,13 @@ def objective(trial):
         'n_folds': PARAMETERS['n_folds']
     }
 
-    trainer = ModelTrainer(ticker='BTC-USD')
-    x, y = trainer.x, trainer.y
+    try:
+        trainer = ModelTrainer(ticker='BTC-USD')
+    except Exception as e:
+        logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
+        raise
 
+    x, y = trainer.x, trainer.y
     tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
     splits = tscv.split(x)
 
@@ -39,33 +45,39 @@ def objective(trial):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
 
-        model, history = train_model(
-            x_train, y_train, x_val, y_val,
-            model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
-            ticker=trainer.ticker,
-            fold_index=i,
-            parameters=parameters
-        )
+        try:
+            model, history = train_model(
+                x_train, y_train, x_val, y_val,
+                model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
+                ticker=trainer.ticker,
+                fold_index=i,
+                parameters=parameters
+            )
+        except Exception as e:
+            logger.error(f"Failed to train model for fold {i}: {e}", exc_info=True)
+            continue
 
         y_pred = model.predict(x_val)
         mse = mean_squared_error(y_val, y_pred)
         scores.append(mse)
 
-    return np.mean(scores)
+    return float(np.mean(scores))
 
 
-def optimize_hyperparameters(n_trials=20):
+def optimize_hyperparameters(n_trials: int = 20) -> None:
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
+    tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='mse')
+
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=n_trials, callbacks=[tensorboard_callback])
 
-    print("Best trial:")
+    logger.info("Best trial:")
     trial = study.best_trial
-    print(f"  Value: {trial.value:.4f}")
-    print("  Params: ")
+    logger.info(f"  Value: {trial.value:.4f}")
+    logger.info("  Params: ")
     for key, value in trial.params.items():
-        print(f"    {key}: {value}")
+        logger.info(f"    {key}: {value}")
 
     # Save the best parameters
     best_params_path = BASE_DIR / 'best_params.json'

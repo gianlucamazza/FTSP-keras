@@ -1,11 +1,12 @@
 import time
 from pathlib import Path
-
 import joblib
 import numpy as np
 import pandas as pd
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras.regularizers import l1_l2
+from tensorflow.keras.models import Model
+from typing import Tuple, Optional, Dict
 
 from config import COLUMN_SETS, PARAMETERS
 import logger as logger_module
@@ -16,7 +17,7 @@ BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_model_logger', BASE_DIR / 'logs', 'train_model.log')
 
 
-def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, parameters, worker=None):
+def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str, ticker: str, fold_index: int, parameters: Dict, worker: Optional[object] = None) -> Tuple[Model, dict]:
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index}...")
     start_time = time.time()
@@ -28,15 +29,20 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
         additional_layers=parameters['additional_layers'],
         bidirectional=parameters['bidirectional'],
         l1_reg=parameters.get('l1_reg', 1e-5),
-        l2_reg=parameters.get('l2_reg', 1e-5)
+        l2_reg=parameters.get('l2_reg', 1e-5),
+        optimizer='adam'
     )
 
     tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
     tensorboard_callback = TensorBoard(log_dir=str(tensorboard_log_dir), histogram_freq=1)
 
+    # Ensure the model directory exists
+    model_dir_path = Path(model_dir)
+    model_dir_path.mkdir(parents=True, exist_ok=True)
+
     # Callbacks
     model_checkpoint = ModelCheckpoint(
-        filepath=str(Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"),
+        filepath=str(model_dir_path / f"model_{ticker}_fold_{fold_index}.keras"),
         monitor='val_loss',
         save_best_only=True,
         save_weights_only=False,
@@ -62,7 +68,7 @@ def train_model(x_train, y_train, x_val, y_val, model_dir, ticker, fold_index, p
     )
 
     logger.info(f"Training completed for fold {fold_index}.")
-    model_path = Path(model_dir) / f"model_{ticker}_fold_{fold_index}.keras"
+    model_path = model_dir_path / f"model_{ticker}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 
@@ -77,7 +83,7 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker='BTC-USD'):
+    def __init__(self, ticker: str = 'BTC-USD'):
         self.ticker = ticker
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
@@ -91,7 +97,7 @@ class ModelTrainer:
         self.df = prepare_data(self.df, self.feature_scaler)
         self.x, self.y = self.create_windowed_data(self.df, PARAMETERS['train_steps'], self.COLUMN_TO_PREDICT)
 
-    def load_scaler(self):
+    def load_scaler(self) -> object:
         """Load the feature scaler from disk."""
         logger.info(f"Loading scaler from {self.scaler_path}")
         try:
@@ -103,12 +109,14 @@ class ModelTrainer:
             logger.error(f"Error loading scaler: {e}", exc_info=True)
             raise
 
-    def load_dataset(self):
+    def load_dataset(self) -> pd.DataFrame:
         """Load the dataset from disk."""
         logger.info(f"Loading dataset from {self.data_path}")
         try:
             df = pd.read_csv(self.data_path, index_col='Date')
             df.ffill(inplace=True)
+            if self.COLUMN_TO_PREDICT not in df.columns:
+                raise ValueError(f"Column {self.COLUMN_TO_PREDICT} not found in dataset.")
             return df
         except FileNotFoundError as e:
             logger.error(f"Dataset file not found: {e}")
@@ -118,7 +126,7 @@ class ModelTrainer:
             raise
 
     @staticmethod
-    def create_windowed_data(df, steps, target_column):
+    def create_windowed_data(df: pd.DataFrame, steps: int, target_column: str) -> Tuple[np.ndarray, np.ndarray]:
         """Create windowed data for LSTM."""
         x, y = [], []
         target_index = df.columns.get_loc(target_column)

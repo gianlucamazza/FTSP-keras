@@ -24,17 +24,18 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
 
     logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
 
-    optimize_hyperparameters(20)
+    # Optimize hyperparameters if not provided
+    if parameters is None:
+        logger.info("Optimizing hyperparameters...")
+        optimize_hyperparameters(20)
+        parameters = load_best_params(BASE_DIR / 'best_params.json')
+        logger.info(f"Optimized parameters: {parameters}")
 
     trainer = ModelTrainer(ticker)
 
     n_splits = parameters['n_folds']
-    if n_splits > 1:
-        tscv = TimeSeriesSplit(n_splits=n_splits)
-        splits = tscv.split(trainer.x)
-    else:
-        split_index = int(len(trainer.x) * 0.8)
-        splits = [(np.arange(split_index), np.arange(split_index, len(trainer.x)))]
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    splits = tscv.split(trainer.x)
 
     logger.info(f"Number of splits: {n_splits}")
 
@@ -52,25 +53,34 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         x_train, x_test = trainer.x[train_index], trainer.x[test_index]
         y_train, y_test = trainer.y[train_index], trainer.y[test_index]
 
-        model, history = train_model(
-            x_train, y_train, x_test, y_test,
-            model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
-            ticker=trainer.ticker,
-            fold_index=i,
-            parameters=parameters,
-            worker=worker
-        )
+        try:
+            model, history = train_model(
+                x_train, y_train, x_test, y_test,
+                model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
+                ticker=trainer.ticker,
+                fold_index=i,
+                parameters=parameters,
+                worker=worker
+            )
+        except Exception as e:
+            logger.error(f"Training failed for fold {i}: {e}", exc_info=True)
+            continue
 
         if model is None:
             logger.error("Model training failed.")
             return
 
-        current_val_loss = min(history.history['val_loss'])
-        if current_val_loss < best_val_loss:
-            best_val_loss = current_val_loss
+        # Validate the model
+        val_loss = min(history.history['val_loss'])
+        logger.info(f"Fold {i + 1}/{n_splits} - Validation Loss: {val_loss:.4f}")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
             best_model = model
 
+        # Calculate and log metrics
         rmse, mae, mape = calculate_metrics(model, x_test, y_test)
+        logger.info(f"Fold {i + 1}/{n_splits} - RMSE: {rmse:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
         metrics_list.append((rmse, mae, mape))
 
     if best_model:
@@ -83,7 +93,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         average_mae = np.mean([m[1] for m in metrics_list])
         average_mape = np.mean([m[2] for m in metrics_list])
         logger.info(
-            f"Average metrics across all folds - RMSE: {average_rmse:.2f}, MAE: {average_mae:.2f}, MAPE: {average_mape:.2f}")
+            f"Average metrics across all folds - RMSE: {average_rmse:.4f}, MAE: {average_mae:.4f}, MAPE: {average_mape:.4f}")
 
     logger.info("Training process completed.")
 
