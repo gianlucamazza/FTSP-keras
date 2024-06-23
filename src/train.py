@@ -61,6 +61,7 @@ def main(ticker='BTC-USD', worker=None, parameters=None):
         )
 
         if model is None:
+            logger.error("Model training failed.")
             return
 
         current_val_loss = min(history.history['val_loss'])
