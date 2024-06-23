@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import logger as logger_module
 from config import COLUMN_SETS, CLOSE, PARAMETERS
 from technical_indicators import calculate_technical_indicators
+from feature_engineering import process_and_save_features
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
