@@ -45,16 +45,18 @@ def objective(trial: optuna.trial.Trial) -> float:
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
 
+        trial_id = trial.number
         try:
             model, history = train_model(
                 x_train, y_train, x_val, y_val,
                 model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
                 ticker=trainer.ticker,
                 fold_index=i,
+                trial_id=trial_id,
                 parameters=parameters
             )
         except Exception as e:
-            logger.error(f"Failed to train model for fold {i}: {e}", exc_info=True)
+            logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)
             continue
 
         y_pred = model.predict(x_val)

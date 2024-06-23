@@ -16,9 +16,9 @@ BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_model_logger', BASE_DIR / 'logs', 'train_model.log')
 
 
-def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str, ticker: str, fold_index: int, parameters: Dict, worker: Optional[object] = None) -> Tuple[Model, dict]:
+def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str, ticker: str, fold_index: int, parameters: Dict, trial_id: int, worker: Optional[object] = None) -> Tuple[Model, dict]:
     """Train the LSTM model."""
-    logger.info(f"Starting training for fold {fold_index}...")
+    logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
 
     model = build_model(
@@ -48,7 +48,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
 
     # Callbacks
     model_checkpoint = ModelCheckpoint(
-        filepath=str(model_dir_path / f"model_{ticker}_fold_{fold_index}.keras"),
+        filepath=str(model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"),
         monitor='val_loss',
         save_best_only=True,
         save_weights_only=False,
@@ -73,13 +73,13 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         verbose=1
     )
 
-    logger.info(f"Training completed for fold {fold_index}.")
-    model_path = model_dir_path / f"model_{ticker}_fold_{fold_index}.keras"
+    logger.info(f"Training completed for fold {fold_index} in trial {trial_id}.")
+    model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 
     end_time = time.time()
-    logger.info(f"Training for fold {fold_index} completed in {end_time - start_time:.2f} seconds.")
+    logger.info(f"Training for fold {fold_index} in trial {trial_id} completed in {end_time - start_time:.2f} seconds.")
     return model, history
 
 
