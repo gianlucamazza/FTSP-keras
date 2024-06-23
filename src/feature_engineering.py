@@ -55,6 +55,18 @@ def save_scaler(scaler: MinMaxScaler, ticker: str):
     logger.info(f"Feature scaler saved at {path}")
 
 
+def fit_arima_model(data: pd.Series):
+    """Fit an ARIMA model to the data."""
+    try:
+        model = sm.tsa.ARIMA(data, order=(1, 1, 1))
+        results = model.fit(method='lbfgs', maxiter=500)
+        logger.info(f"ARIMA model summary: \n{results.summary()}")
+        return results
+    except Exception as e:
+        logger.error(f"Error fitting ARIMA model: {e}", exc_info=True)
+        raise
+
+
 def process_and_save_features(df: pd.DataFrame, ticker: str):
     """Process features by calculating technical indicators, normalizing, and saving the data and scaler."""
     try:
@@ -91,11 +103,8 @@ def process_and_save_features(df: pd.DataFrame, ticker: str):
         feature_matrix.to_csv(scaled_data_path, index=True)
         logger.info(f"Scaled data saved at {scaled_data_path}")
 
-        # Model with statsmodels
-        model = sm.tsa.ARIMA(feature_matrix[CLOSE], order=(1, 1, 1))
-        results = model.fit()
-
-        logger.info(f"ARIMA model summary: \n{results.summary()}")
+        # Fit ARIMA model with statsmodels
+        fit_arima_model(feature_matrix[CLOSE])
 
     except Exception as e:
         logger.error(f"Error in process_and_save_features: {e}", exc_info=True)
