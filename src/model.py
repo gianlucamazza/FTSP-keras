@@ -10,6 +10,7 @@ import logger as logger_module
 BASE_DIR = Path(__file__).resolve().parent.parent
 logger = logger_module.setup_logger('model_logger', BASE_DIR / 'logs', 'model.log')
 
+
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
                 learning_rate=0.001, loss='mean_squared_error', metrics=None,
                 l1_reg=0.0, l2_reg=0.0, additional_layers=0, bidirectional=False):
@@ -76,6 +77,7 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
     model.compile(optimizer=opt, loss=loss, metrics=metrics)
 
     return model
+
 
 def prepare_callbacks(model_dir, ticker, monitor='val_loss', epoch=0):
     """

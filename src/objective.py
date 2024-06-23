@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import numpy as np
 import optuna
 from optuna.integration.tensorboard import TensorBoardCallback
@@ -17,12 +16,13 @@ logger = setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
 
 def objective(trial: optuna.trial.Trial) -> float:
     parameters = {
-        'neurons': trial.suggest_int('neurons', 50, 200),
+        'neurons': trial.suggest_int('neurons', 50, 300),
         'dropout': trial.suggest_float('dropout', 0.1, 0.5),
-        'additional_layers': trial.suggest_int('additional_layers', 0, 2),
+        'additional_layers': trial.suggest_int('additional_layers', 0, 3),
         'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
         'l1_reg': trial.suggest_float('l1_reg', 1e-6, 1e-2),
         'l2_reg': trial.suggest_float('l2_reg', 1e-6, 1e-2),
+        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-2),
         'epochs': PARAMETERS['epochs'],
         'batch_size': PARAMETERS['batch_size'],
         'train_steps': PARAMETERS['train_steps'],
@@ -64,7 +64,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     return float(np.mean(scores))
 
 
-def optimize_hyperparameters(n_trials: int = 20) -> None:
+def optimize_hyperparameters(n_trials: int = 50) -> None:
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='mse')
