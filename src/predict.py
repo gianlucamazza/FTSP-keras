@@ -7,7 +7,6 @@ from keras.models import load_model
 import matplotlib.pyplot as plt
 import logger as logger_module
 from config import COLUMN_SETS, CLOSE, PARAMETERS
-from technical_indicators import calculate_technical_indicators
 from feature_engineering import process_and_save_features
 
 # Add the project directory to the sys.path
@@ -40,7 +39,7 @@ class ModelPredictor:
     def __init__(self, ticker='BTC-USD', prediction_steps=30):
         self.ticker = ticker
         self.prediction_steps = prediction_steps
-        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/raw_data_{self.ticker}.csv'
+        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
         self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
 
@@ -67,16 +66,7 @@ class ModelPredictor:
             raise
 
     def prepare_data(self):
-        """Prepare the data by adding technical indicators and scaling."""
-        logger.info("Calculating technical indicators.")
-        self.df = calculate_technical_indicators(self.df)
-
-        # Ensure all required columns are present
-        missing_columns = set(COLUMN_SETS['to_scale']) - set(self.df.columns)
-        if missing_columns:
-            logger.error(f"Missing required columns in the DataFrame: {missing_columns}")
-            raise ValueError(f"Missing required columns in the DataFrame: {missing_columns}")
-
+        """Prepare the data by scaling."""
         logger.info("Scaling data.")
         scaler_columns = COLUMN_SETS['to_scale']
         self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
@@ -183,6 +173,17 @@ class ModelPredictor:
 
 def main(ticker='BTC-USD', prediction_steps=30):
     """Main function to run the prediction script."""
+    # Process and save features before running the prediction
+    processed_data_path = BASE_DIR / f'data/processed_data_{ticker}.csv'
+    if not processed_data_path.exists():
+        raw_data_path = BASE_DIR / f'data/raw_data_{ticker}.csv'
+        if raw_data_path.exists():
+            df_raw = pd.read_csv(raw_data_path, index_col='Date', parse_dates=True)
+            process_and_save_features(df_raw, ticker)
+        else:
+            logger.error(f"Raw data file not found: {raw_data_path}")
+            return
+
     predictor = ModelPredictor(ticker, prediction_steps)
     predictor.run()
 
