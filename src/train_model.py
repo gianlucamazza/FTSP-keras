@@ -4,7 +4,6 @@ import joblib
 import numpy as np
 import pandas as pd
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-import tensorflow_addons as tfa
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
@@ -35,9 +34,9 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
 
     # Use TensorFlow Addons for advanced optimizers and metrics
     model.compile(
-        optimizer=tfa.optimizers.AdamW(learning_rate=parameters.get('learning_rate', 1e-3)),
+        optimizer='adam',
         loss='mean_squared_error',
-        metrics=[tfa.metrics.RSquare(name='r_squared')]
+        metrics=['mean_squared_error']
     )
 
     tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
