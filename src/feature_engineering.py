@@ -59,7 +59,7 @@ def fit_arima_model(data: pd.Series):
     """Fit an ARIMA model to the data."""
     try:
         model = sm.tsa.ARIMA(data, order=(1, 1, 1))
-        results = model.fit(method='lbfgs', maxiter=500)
+        results = model.fit(method_kwargs={'maxiter': 500, 'disp': 0})
         logger.info(f"ARIMA model summary: \n{results.summary()}")
         return results
     except Exception as e:

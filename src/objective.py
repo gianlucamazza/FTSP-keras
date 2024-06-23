@@ -71,6 +71,8 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     logger.info("Optimizing hyperparameters")
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Note: TensorBoardCallback is experimental and its interface may change in the future.
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
     study = optuna.create_study(direction='minimize')
