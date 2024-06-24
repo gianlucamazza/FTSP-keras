@@ -127,7 +127,7 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
 
 
 if __name__ == '__main__':
-    use_cloud = False  # Set to True to use TensorFlow Cloud for training
+    use_cloud = True  # Set to True to use TensorFlow Cloud for training
     if use_cloud:
         TF_GPU_IMAGE = "tensorflow/tensorflow:latest-gpu"
         GCS_BUCKET = 'modeltrainer-bucket'
