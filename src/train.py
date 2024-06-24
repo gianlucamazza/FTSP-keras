@@ -7,7 +7,7 @@ import logger as logger_module
 from train_utils import load_best_params, save_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
-from config import PARAMETERS
+from typing import Any
 
 # Add the project directory to the sys.path for module resolution
 project_dir = Path(__file__).resolve().parent
@@ -46,14 +46,11 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
 
     logger.info(f"Starting training process for {ticker} with hyperparameters: {hyperparameters}")
 
-    # Combine hyperparameters with fixed parameters for training
-    parameters = {**PARAMETERS, **hyperparameters}
-
-    # Initialize ModelTrainer
-    trainer = ModelTrainer(ticker)
+    # Initialize ModelTrainer with hyperparameters
+    trainer = ModelTrainer(ticker, parameters=hyperparameters)
 
     # Set up cross-validation with TimeSeriesSplit
-    n_splits = parameters['n_folds']
+    n_splits = hyperparameters['n_folds']
     tscv = TimeSeriesSplit(n_splits=n_splits)
     splits = list(tscv.split(trainer.x))
 
@@ -87,7 +84,7 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
                 ticker=trainer.ticker,
                 fold_index=i,
                 trial_id=trial_id if trial_id is not None else 0,
-                parameters=parameters,
+                parameters=hyperparameters,
                 worker=worker
             )
         except Exception as e:
@@ -118,14 +115,19 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
         logger.info(f"Best model saved at {best_model_path}")
 
     if metrics_list:
-        average_rmse = np.mean([m[0] for m in metrics_list])
-        average_mae = np.mean([m[1] for m in metrics_list])
-        average_mape = np.mean([m[2] for m in metrics_list])
-        logger.info(
-            f"Average metrics across all folds - RMSE: {average_rmse:.4f}, MAE: {average_mae:.4f}, MAPE: {average_mape:.4f}")
+        valid_metrics = [(rmse, mae, mape) for rmse, mae, mape in metrics_list if
+                         np.isfinite(rmse) and np.isfinite(mae) and np.isfinite(mape)]
+        if valid_metrics:
+            average_rmse: Any = np.mean([m[0] for m in valid_metrics])
+            average_mae: Any = np.mean([m[1] for m in valid_metrics])
+            average_mape: Any = np.mean([m[2] for m in valid_metrics])
+            logger.info(
+                f"Average metrics across all folds - RMSE: {average_rmse:.4f}, MAE: {average_mae:.4f}, MAPE: {average_mape:.4f}")
+        else:
+            logger.warning("No valid metrics to average.")
 
     logger.info("Training process completed.")
 
 
 if __name__ == '__main__':
-        main()
+    main()

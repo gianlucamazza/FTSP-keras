@@ -7,7 +7,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
-from config import COLUMN_SETS, PARAMETERS
+from config import COLUMN_SETS
 import logger as logger_module
 from data_utils import prepare_data
 from model import build_model
@@ -89,8 +89,9 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker: str = 'BTC-USD'):
+    def __init__(self, ticker: str = 'BTC-USD', parameters: Optional[Dict] = None):
         self.ticker = ticker
+        self.parameters = parameters
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
 
@@ -101,7 +102,7 @@ class ModelTrainer:
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
         self.df = prepare_data(self.df, self.feature_scaler)
-        self.x, self.y = self.create_windowed_data(self.df, PARAMETERS['train_steps'], self.COLUMN_TO_PREDICT)
+        self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
 
     def load_scaler(self) -> object:
         """Load the feature scaler from disk."""

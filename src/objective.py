@@ -4,11 +4,8 @@ import optuna
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
-
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
-
-from config import PARAMETERS
 from logger import setup_logger
 from train_model import train_model, ModelTrainer
 from train_utils import save_best_params
@@ -24,9 +21,13 @@ HP_BIDIRECTIONAL = hp.HParam('bidirectional', hp.Discrete([True, False]))
 HP_L1_REG = hp.HParam('l1_reg', hp.RealInterval(1e-6, 1e-2))
 HP_L2_REG = hp.HParam('l2_reg', hp.RealInterval(1e-6, 1e-2))
 HP_LEARNING_RATE = hp.HParam('learning_rate', hp.RealInterval(1e-5, 1e-2))
+HP_N_FOLDS = hp.HParam('n_folds', hp.IntInterval(3, 10))
+HP_EPOCHS = hp.HParam('epochs', hp.IntInterval(50, 200))
+HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32, 64, 128]))
+HP_TRAIN_STEPS = hp.HParam('train_steps', hp.IntInterval(30, 180))
+HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval(5, 20))
 
 METRIC_MSE = 'mse'
-
 
 def objective(trial: optuna.trial.Trial) -> float:
     parameters = {
@@ -37,17 +38,17 @@ def objective(trial: optuna.trial.Trial) -> float:
         'l1_reg': trial.suggest_float('l1_reg', 1e-6, 1e-2),
         'l2_reg': trial.suggest_float('l2_reg', 1e-6, 1e-2),
         'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-2, log=True),
-        'epochs': PARAMETERS['epochs'],
-        'batch_size': PARAMETERS['batch_size'],
-        'train_steps': PARAMETERS['train_steps'],
-        'early_stopping_patience': PARAMETERS['early_stopping_patience'],
-        'n_folds': PARAMETERS['n_folds']
+        'epochs': trial.suggest_int('epochs', 50, 200),
+        'batch_size': trial.suggest_int('batch_size', 16, 128),
+        'train_steps': trial.suggest_int('train_steps', 30, 180),
+        'early_stopping_patience': trial.suggest_int('early_stopping_patience', 5, 20),
+        'n_folds': trial.suggest_int('n_folds', 3, 10)
     }
 
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     try:
-        trainer = ModelTrainer(ticker='BTC-USD')
+        trainer = ModelTrainer(ticker='BTC-USD', parameters=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
         raise
@@ -99,12 +100,16 @@ def objective(trial: optuna.trial.Trial) -> float:
                 HP_BIDIRECTIONAL: parameters['bidirectional'],
                 HP_L1_REG: parameters['l1_reg'],
                 HP_L2_REG: parameters['l2_reg'],
-                HP_LEARNING_RATE: parameters['learning_rate']
+                HP_LEARNING_RATE: parameters['learning_rate'],
+                HP_EPOCHS: parameters['epochs'],
+                HP_BATCH_SIZE: parameters['batch_size'],
+                HP_TRAIN_STEPS: parameters['train_steps'],
+                HP_EARLY_STOPPING_PATIENCE: parameters['early_stopping_patience'],
+                HP_N_FOLDS: parameters['n_folds']
             })
             tf.summary.scalar(METRIC_MSE, average_score, step=trial_id)
 
     return float(np.mean(scores)) if scores else float('inf')
-
 
 def optimize_hyperparameters(n_trials: int = 50) -> None:
     logger.info("Optimizing hyperparameters")
@@ -128,7 +133,6 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     best_params_path = BASE_DIR / 'best_params.json'
     save_best_params(trial.params, best_params_path)
     logger.info(f"Best parameters saved at {best_params_path}")
-
 
 if __name__ == '__main__':
     optimize_hyperparameters()
