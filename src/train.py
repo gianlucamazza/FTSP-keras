@@ -41,6 +41,8 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
         hyperparameters = load_best_params(hyperparameters_path)
         logger.info(f"Optimized hyperparameters: {hyperparameters}")
         save_best_params(hyperparameters, hyperparameters_path)
+    else:
+        logger.info("Using existing hyperparameters.")
 
     logger.info(f"Starting training process for {ticker} with hyperparameters: {hyperparameters}")
 
