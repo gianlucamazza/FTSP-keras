@@ -5,8 +5,8 @@ from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
 
-from tensorboard.plugins.hparams import api as hp
 import tensorflow as tf
+from tensorboard.plugins.hparams import api as hp
 
 from config import PARAMETERS
 from logger import setup_logger
@@ -89,21 +89,19 @@ def objective(trial: optuna.trial.Trial) -> float:
         average_score = np.mean(scores)
         trial.report(average_score, step=last_step)
         logger.info(f"Trial {trial_id} completed with average MSE: {average_score}")
-    else:
-        logger.warning(f"No valid scores obtained for trial {trial_id}")
 
-    # Log hyperparameters and metrics
-    with tf.summary.create_file_writer(str(BASE_DIR / 'logs' / 'hparams')).as_default():
-        hp.hparams({
-            HP_NEURONS: parameters['neurons'],
-            HP_DROPOUT: parameters['dropout'],
-            HP_LAYERS: parameters['additional_layers'],
-            HP_BIDIRECTIONAL: parameters['bidirectional'],
-            HP_L1_REG: parameters['l1_reg'],
-            HP_L2_REG: parameters['l2_reg'],
-            HP_LEARNING_RATE: parameters['learning_rate']
-        })
-        tf.summary.scalar(METRIC_MSE, average_score, step=trial_id)
+        # Log hyperparameters and metrics
+        with tf.summary.create_file_writer(str(BASE_DIR / 'logs' / 'hparams')).as_default():
+            hp.hparams({
+                HP_NEURONS: parameters['neurons'],
+                HP_DROPOUT: parameters['dropout'],
+                HP_LAYERS: parameters['additional_layers'],
+                HP_BIDIRECTIONAL: parameters['bidirectional'],
+                HP_L1_REG: parameters['l1_reg'],
+                HP_L2_REG: parameters['l2_reg'],
+                HP_LEARNING_RATE: parameters['learning_rate']
+            })
+            tf.summary.scalar(METRIC_MSE, average_score, step=trial_id)
 
     return float(np.mean(scores)) if scores else float('inf')
 
