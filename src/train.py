@@ -8,7 +8,7 @@ import logger as logger_module
 from train_utils import load_best_params, save_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
-from config import PARAMETERS, HYPERPARAMETERS
+from config import PARAMETERS
 
 # Add the project directory to the sys.path for module resolution
 project_dir = Path(__file__).resolve().parent
@@ -34,12 +34,12 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
     """
 
     hyperparameters_path = BASE_DIR / hyperparameters_file
-    hyperparameters = load_best_params(hyperparameters_path, HYPERPARAMETERS)
+    hyperparameters = load_best_params(hyperparameters_path)
 
-    if hyperparameters == HYPERPARAMETERS:
+    if not hyperparameters:
         logger.info("Optimizing hyperparameters...")
         optimize_hyperparameters(n_trials=50)
-        hyperparameters = load_best_params(hyperparameters_path, HYPERPARAMETERS)
+        hyperparameters = load_best_params(hyperparameters_path)
         logger.info(f"Optimized hyperparameters: {hyperparameters}")
         save_best_params(hyperparameters, hyperparameters_path)
 

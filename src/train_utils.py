@@ -16,14 +16,13 @@ def save_best_params(params, path):
         json.dump(params, f, indent=4)
 
 
-def load_best_params(path, default_params):
+def load_best_params(path):
     if path.exists():
         logger.info(f"Found parameters file at {path}")
         with open(path, 'r') as f:
             return json.load(f)
     else:
-        logger.warning(f"Parameters file not found at {path}. Using default parameters.")
-        return default_params
+        return
 
 
 def calculate_metrics(model, x_test, y_test):
