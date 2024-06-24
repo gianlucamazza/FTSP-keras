@@ -5,9 +5,10 @@ from tensorflow.keras import mixed_precision
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 import logger as logger_module
-from train_utils import load_best_params, calculate_metrics
+from train_utils import load_best_params, save_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
+from config import PARAMETERS, HYPERPARAMETERS
 
 # Add the project directory to the sys.path for module resolution
 project_dir = Path(__file__).resolve().parent
@@ -21,23 +22,31 @@ policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
 
-def main(ticker='BTC-USD', worker=None, parameters=None, trial_id=None):
+def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json', trial_id=None):
     """
     Main function to train the model.
 
     Args:
         ticker (str): The ticker symbol for the financial instrument.
         worker (optional): A worker object to manage early stopping.
-        parameters (dict, optional): Hyperparameters for the model.
+        hyperparameters_file (str): Path to the parameters file.
         trial_id (int, optional): The trial ID from hyperparameter optimization.
     """
-    if parameters is None:
+
+    hyperparameters_path = BASE_DIR / hyperparameters_file
+    hyperparameters = load_best_params(hyperparameters_path, HYPERPARAMETERS)
+
+    if hyperparameters == HYPERPARAMETERS:
         logger.info("Optimizing hyperparameters...")
         optimize_hyperparameters(n_trials=50)
-        parameters = load_best_params(BASE_DIR / 'best_params.json')
-        logger.info(f"Optimized parameters: {parameters}")
+        hyperparameters = load_best_params(hyperparameters_path, HYPERPARAMETERS)
+        logger.info(f"Optimized hyperparameters: {hyperparameters}")
+        save_best_params(hyperparameters, hyperparameters_path)
 
-    logger.info(f"Starting training process for {ticker} with parameters: {parameters}")
+    logger.info(f"Starting training process for {ticker} with hyperparameters: {hyperparameters}")
+
+    # Combine hyperparameters with fixed parameters for training
+    parameters = {**PARAMETERS, **hyperparameters}
 
     # Initialize ModelTrainer
     trainer = ModelTrainer(ticker)

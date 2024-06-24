@@ -7,6 +7,7 @@ Sections:
 1. Column Definitions
 2. Column Sets
 3. Model Parameters
+4. Hyperparameters
 """
 
 # Column Definitions
@@ -59,14 +60,20 @@ COLUMN_SETS = {
 # ----------------
 # Parameters for the LSTM model
 PARAMETERS = {
-    'neurons': 150,            # Number of neurons in each LSTM layer
-    'dropout': 0.3,            # Dropout rate for regularization
-    'additional_layers': 1,    # Number of additional dense layers after LSTM layers
-    'bidirectional': True,     # Use bidirectional LSTM if True
     'epochs': 100,             # Number of training epochs
     'batch_size': 16,          # Batch size for training
     'train_steps': 90,         # Number of steps (time frames) for each training sample
     'test_steps': 30,          # Number of steps (time frames) for each test sample
     'n_folds': 5,              # Number of folds for cross-validation
     'early_stopping_patience': 10 # Patience for early stopping during training
+}
+
+# Hyperparameters
+# ---------------
+# Hyperparameters for the LSTM model
+HYPERPARAMETERS = {
+    'neurons': 150,            # Number of neurons in each LSTM layer
+    'dropout': 0.3,            # Dropout rate for regularization
+    'additional_layers': 1,    # Number of additional dense layers after LSTM layers
+    'bidirectional': True,     # Use bidirectional LSTM if True
 }
