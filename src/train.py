@@ -127,24 +127,4 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
 
 
 if __name__ == '__main__':
-    use_cloud = True  # Set to True to use TensorFlow Cloud for training
-    if use_cloud:
-        TF_GPU_IMAGE = "tensorflow/tensorflow:latest-gpu"
-        GCS_BUCKET = 'modeltrainer-bucket'
-
-        run_parameters = {
-            'distribution_strategy': 'auto',
-            'requirements_txt': 'requirements.txt',
-            'docker_config': tfc.DockerConfig(
-                parent_image=TF_GPU_IMAGE,
-                image_build_bucket=GCS_BUCKET
-            ),
-            'chief_config': tfc.COMMON_MACHINE_CONFIGS['K80_1X'],
-            'worker_config': tfc.COMMON_MACHINE_CONFIGS['K80_1X'],
-            'worker_count': 3,
-            'job_labels': {'job': "btc_price_prediction"}
-        }
-
-        tfc.run(**run_parameters)
-    else:
         main()
