@@ -7,6 +7,7 @@ from keras.models import load_model
 import matplotlib.pyplot as plt
 import logger as logger_module
 from config import COLUMN_SETS, CLOSE, PARAMETERS
+from technical_indicators import calculate_technical_indicators
 from feature_engineering import process_and_save_features
 
 # Add the project directory to the sys.path
@@ -66,7 +67,10 @@ class ModelPredictor:
             raise
 
     def prepare_data(self):
-        """Prepare the data by scaling."""
+        """Prepare the data by calculating indicators and scaling."""
+        logger.info("Calculating technical indicators.")
+        self.df = calculate_technical_indicators(self.df)
+
         logger.info("Scaling data.")
         scaler_columns = COLUMN_SETS['to_scale']
 
