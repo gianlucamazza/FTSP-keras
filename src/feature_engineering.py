@@ -37,6 +37,7 @@ def clean_data(df: pd.DataFrame):
     initial_shape = df.shape
     df.dropna(inplace=True, how='any')
     logger.info(f"Data cleaned. NaN values handled. {initial_shape[0] - df.shape[0]} rows removed.")
+    check_data(df, "cleaning data")
 
 
 def normalize_features(df: pd.DataFrame, columns_to_normalize: list):
@@ -44,6 +45,7 @@ def normalize_features(df: pd.DataFrame, columns_to_normalize: list):
     logger.info("Normalizing features.")
     scaler = MinMaxScaler()
     df[columns_to_normalize] = scaler.fit_transform(df[columns_to_normalize])
+    check_data(df, "normalizing features")
     return df, scaler
 
 
@@ -95,11 +97,12 @@ def process_and_save_features(df: pd.DataFrame, ticker: str):
         # Normalize features
         columns_to_normalize = feature_matrix.columns.tolist()
         feature_matrix, feature_scaler = normalize_features(feature_matrix, columns_to_normalize)
-        check_data(feature_matrix, "normalizing features")
 
         save_scaler(feature_scaler, ticker)
 
         scaled_data_path = BASE_DIR / f'data/scaled_data_{ticker}.csv'
+        if scaled_data_path.exists():
+            logger.warning(f"File {scaled_data_path} already exists and will be overwritten.")
         feature_matrix.to_csv(scaled_data_path, index=True)
         logger.info(f"Scaled data saved at {scaled_data_path}")
 
