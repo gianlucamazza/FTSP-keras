@@ -1,0 +1,9 @@
+{
+    "neurons": 105,
+    "dropout": 0.2566454859376896,
+    "additional_layers": 0,
+    "bidirectional": false,
+    "l1_reg": 0.0017764761142188715,
+    "l2_reg": 0.0033352076391302762,
+    "learning_rate": 0.002223292119782033
+}
