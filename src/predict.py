@@ -69,6 +69,13 @@ class ModelPredictor:
         """Prepare the data by scaling."""
         logger.info("Scaling data.")
         scaler_columns = COLUMN_SETS['to_scale']
+
+        # Check for missing columns
+        missing_columns = [col for col in scaler_columns if col not in self.df.columns]
+        if missing_columns:
+            logger.error(f"Missing columns for scaling: {missing_columns}")
+            raise KeyError(f"Missing columns for scaling: {missing_columns}")
+
         self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
 
     def predict(self):
