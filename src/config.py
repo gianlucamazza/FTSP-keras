@@ -35,6 +35,10 @@ FIB_23_6 = 'Fibonacci_23.6%'
 FIB_38_2 = 'Fibonacci_38.2%'
 FIB_50 = 'Fibonacci_50%'
 FIB_61_8 = 'Fibonacci_61.8%'
+ATR = 'ATR'
+CCI = 'CCI'
+OBV = 'OBV'
+EMA = 'EMA'
 
 # Column Sets
 # -----------
@@ -44,7 +48,7 @@ COLUMN_SETS = {
         OPEN, HIGH, LOW, CLOSE, VOLUME,
         MA50, MA200, RETURNS, VOLATILITY, MA20,
         UPPER, LOWER, RSI, MACD, RANGE,
-        FIB_23_6, FIB_38_2, FIB_50, FIB_61_8, TREND
+        FIB_23_6, FIB_38_2, FIB_50, FIB_61_8, ATR, CCI, OBV, EMA, TREND
     ],
 
     'basic': [
