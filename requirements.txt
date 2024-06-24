@@ -1,8 +1,13 @@
 pandas
+yfinance
 matplotlib
 keras
 numpy
 tensorflow
 tensorboard
 tensorflow_cloud
+featuretools
+scikit-learn
 optuna
+optuna-integration
+PyQt5
