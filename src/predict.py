@@ -6,7 +6,7 @@ from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
 import logger as logger_module
-from config import COLUMN_SETS, CLOSE, PARAMETERS
+from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 from feature_engineering import process_and_save_features
 
@@ -85,7 +85,7 @@ class ModelPredictor:
     def predict(self):
         """Make predictions using the trained model."""
         self.prepare_data()
-        x = self.df.values[-PARAMETERS['train_steps']:]
+        x = self.df.values[self.prediction_steps]
         predictions = []
 
         for _ in range(self.prediction_steps):
