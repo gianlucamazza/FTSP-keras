@@ -29,6 +29,7 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 
 METRIC_MSE = 'mse'
 
+
 def objective(trial: optuna.trial.Trial) -> float:
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 300),
@@ -111,6 +112,7 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     return float(np.mean(scores)) if scores else float('inf')
 
+
 def optimize_hyperparameters(n_trials: int = 50) -> None:
     logger.info("Optimizing hyperparameters")
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
@@ -133,6 +135,7 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     best_params_path = BASE_DIR / 'best_params.json'
     save_best_params(trial.params, best_params_path)
     logger.info(f"Best parameters saved at {best_params_path}")
+
 
 if __name__ == '__main__':
     optimize_hyperparameters()
