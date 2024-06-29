@@ -1,17 +1,26 @@
 from pathlib import Path
 import numpy as np
 import optuna
+import json
+import sys
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
-from logger import setup_logger
-from train_model import train_model, ModelTrainer
+
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(project_dir))
+
+from src.logging.logger import setup_logger
+
+# Setup logger
+ROOT_DIR = project_dir
+logger = setup_logger('objective_logger', 'logs', 'objective_logger.log')
+
 from train_utils import save_best_params
 
-BASE_DIR = Path(__file__).parent.parent
-logger = setup_logger('objective_logger', BASE_DIR / 'logs', 'objective.log')
 
 # Define hyperparameters
 HP_NEURONS = hp.HParam('neurons', hp.Discrete([50, 100, 150, 200, 250, 300]))
@@ -28,6 +37,15 @@ HP_TRAIN_STEPS = hp.HParam('train_steps', hp.IntInterval(30, 180))
 HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval(5, 20))
 
 METRIC_MSE = 'mse'
+
+
+def load_best_params(ticker, path):
+    try:
+        with open(path, 'r') as file:
+            data = json.load(file)
+            return data.get(ticker)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -49,6 +67,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     try:
+        from train_model import train_model, ModelTrainer
         trainer = ModelTrainer(ticker='BTC', parameters=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
@@ -70,7 +89,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         try:
             model, history = train_model(
                 x_train, y_train, x_val, y_val,
-                model_dir=str(BASE_DIR / trainer.MODELS_FOLDER),
+                model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER),
                 ticker=trainer.ticker,
                 fold_index=i,
                 trial_id=trial_id,
@@ -93,7 +112,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         logger.info(f"Trial {trial_id} completed with average MSE: {average_score}")
 
         # Log hyperparameters and metrics
-        with tf.summary.create_file_writer(str(BASE_DIR / 'logs' / 'hparams')).as_default():
+        with tf.summary.create_file_writer(str(ROOT_DIR / 'logs' / 'hparams')).as_default():
             hp.hparams({
                 HP_NEURONS: parameters['neurons'],
                 HP_DROPOUT: parameters['dropout'],
@@ -114,8 +133,17 @@ def objective(trial: optuna.trial.Trial) -> float:
 
 
 def optimize_hyperparameters(ticker, n_trials: int = 50) -> None:
+    logger.info("Checking for existing best parameters")
+    best_params_path = ROOT_DIR / 'best_params.json'
+    best_params = load_best_params(ticker, best_params_path)
+
+    if best_params:
+        logger.info("Best parameters already exist. Skipping optimization.")
+        logger.info(f"Best parameters for {ticker}: {best_params}")
+        return
+
     logger.info("Optimizing hyperparameters")
-    tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
+    tensorboard_log_dir = ROOT_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
 
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
@@ -132,7 +160,5 @@ def optimize_hyperparameters(ticker, n_trials: int = 50) -> None:
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    best_params_path = BASE_DIR / 'best_params.json'
     save_best_params(trial.params, best_params_path, ticker)
     logger.info(f"Best parameters saved at {best_params_path}")
-

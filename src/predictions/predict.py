@@ -5,11 +5,11 @@ import joblib
 from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
-import logger as logger_module
-from config import COLUMN_SETS, CLOSE
-from technical_indicators import calculate_technical_indicators
-from feature_engineering import process_and_save_features
-from train_utils import load_best_params
+from src.logging import logger as logger_module
+from src.config import COLUMN_SETS, CLOSE
+from src.data.technical_indicators import calculate_technical_indicators
+from src.data.feature_engineering import process_and_save_features
+from src.training.train_utils import load_best_params
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -29,6 +29,7 @@ def load_scaler(path):
     except Exception as e:
         logger.error(f"Error loading scaler from {path}: {e}")
         raise
+
 
 class ModelPredictor:
     COLUMN_TO_PREDICT = CLOSE

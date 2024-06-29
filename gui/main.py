@@ -1,7 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLineEdit, QTextEdit, QProgressBar
 from PyQt5.uic import loadUi
-from PyQt5.QtCore import QThread
 from pathlib import Path
 import logging
 from datetime import datetime, timedelta
@@ -10,10 +9,10 @@ import pandas as pd
 project_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_dir))
 
-from src.train import main as train_main
-from src.data_preparation import main as data_preparation_main
-from src.feature_engineering import main as feature_engineering_main
-from src.predict import main as predict_main
+from src.training.train import main as train_main
+from src.data.data_preparation import main as data_preparation_main
+from src.data.feature_engineering import main as feature_engineering_main
+from src.predictions.predict import main as predict_main
 from gui.worker import Worker
 from gui.mpl_canvas import MplCanvas
 from gui.qtext_edit_logger import QTextEditLogger

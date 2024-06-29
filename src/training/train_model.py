@@ -1,4 +1,7 @@
+import sys
 import time
+import argparse
+import json
 from pathlib import Path
 import joblib
 import numpy as np
@@ -7,16 +10,22 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
-from config import COLUMN_SETS
-import logger as logger_module
-from data_utils import prepare_data
-from model import build_model
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(project_dir))
 
-BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('train_model_logger', BASE_DIR / 'logs', 'train_model.log')
+from src.config import COLUMN_SETS
+from src.logging.logger import setup_logger
+from src.data.data_utils import prepare_data
+from src.models.model_builder import build_model
+
+# Setup logger
+ROOT_DIR = Path(__file__).parent.parent
+logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
-def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str, ticker: str, fold_index: int, parameters: Dict, trial_id: int, worker: Optional[object] = None) -> Tuple[Model, dict]:
+def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
+                ticker: str, fold_index: int, parameters: Dict, trial_id: int) -> Tuple[Model, dict]:
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
@@ -32,21 +41,18 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         optimizer='adam'
     )
 
-    # Use TensorFlow Addons for advanced optimizers and metrics
     model.compile(
         optimizer='adam',
         loss='mean_squared_error',
         metrics=['mean_squared_error']
     )
 
-    tensorboard_log_dir = BASE_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
+    tensorboard_log_dir = ROOT_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
     tensorboard_callback = TensorBoard(log_dir=str(tensorboard_log_dir), histogram_freq=1)
 
-    # Ensure the model directory exists
-    model_dir_path = Path(model_dir)
+    model_dir_path = Path(ROOT_DIR / model_dir)
     model_dir_path.mkdir(parents=True, exist_ok=True)
 
-    # Callbacks
     model_checkpoint = ModelCheckpoint(
         filepath=str(model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"),
         monitor='val_loss',
@@ -64,14 +70,18 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
 
     callbacks = [model_checkpoint, early_stopping, tensorboard_callback]
 
-    history = model.fit(
-        x_train, y_train,
-        epochs=parameters['epochs'],
-        batch_size=parameters['batch_size'],
-        validation_data=(x_val, y_val),
-        callbacks=callbacks,
-        verbose=1
-    )
+    try:
+        history = model.fit(
+            x_train, y_train,
+            epochs=parameters['epochs'],
+            batch_size=parameters['batch_size'],
+            validation_data=(x_val, y_val),
+            callbacks=callbacks,
+            verbose=1
+        )
+    except Exception as e:
+        logger.error(f"Error during training: {e}", exc_info=True)
+        raise
 
     logger.info(f"Training completed for fold {fold_index} in trial {trial_id}.")
     model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
@@ -89,11 +99,11 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker: str = 'BTC', parameters: Optional[Dict] = None):
+    def __init__(self, ticker: str = 'BTC', params: Optional[Dict] = None):
         self.ticker = ticker
-        self.parameters = parameters
-        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
-        self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.parameters = params
+        self.data_path = f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
+        self.scaler_path = f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
 
         logger.info(f"Initializing ModelTrainer for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
@@ -142,3 +152,38 @@ class ModelTrainer:
             x.append(data[i - steps:i])
             y.append(data[i, target_index])
         return np.array(x), np.array(y)
+
+
+def main(ticker: str, params: Dict) -> None:
+    """Main function to start the model training."""
+    logger.info(f"Starting model training for ticker {ticker}")
+    trainer = ModelTrainer(ticker=ticker, params=params)
+
+    # Splitting data into training and validation sets
+    split_index = int(len(trainer.x) * 0.8)
+    x_train, y_train = trainer.x[:split_index], trainer.y[:split_index]
+    x_val, y_val = trainer.x[split_index:], trainer.y[split_index:]
+
+    logger.debug(f"x_train shape: {x_train.shape}, y_train shape: {y_train.shape}")
+    logger.debug(f"x_val shape: {x_val.shape}, y_val shape: {y_val.shape}")
+
+    model_dir = ROOT_DIR / ModelTrainer.MODELS_FOLDER
+    model, history = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, 0, params, 0)
+    logger.info(f"Model training for ticker {ticker} completed.")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Train LSTM model for financial prediction')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+    parser.add_argument('--params', type=str, required=True, help='Path to parameters JSON file')
+
+    args = parser.parse_args()
+    params_path = Path(args.params)
+    if not params_path.exists():
+        logger.error(f"Parameters file not found: {params_path}")
+        sys.exit(1)
+
+    with open(params_path, 'r') as file:
+        parameters = json.load(file)
+
+    main(ticker=args.ticker, params=parameters)

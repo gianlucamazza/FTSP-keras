@@ -1,19 +1,22 @@
+import argparse
 import sys
 from pathlib import Path
-import pandas as pd
-import yfinance as yf
-import logger as logger_module
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from config import COLUMN_SETS
+import pandas as pd
+import yfinance as yf
 
-# Add the project directory to the sys.path
-project_dir = Path(__file__).resolve().parent
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
+from src.config import COLUMN_SETS
+from src.logging.logger import setup_logger
+
 # Setup logger
-BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('data_preparation_logger', BASE_DIR / 'logs', 'data_preparation.log')
+ROOT_DIR = project_dir
+logger = setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
 
 
 def download_financial_data(ticker, start_date, end_date):
@@ -38,7 +41,6 @@ def arrange_and_fill(df, ticker):
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
     df = df[COLUMN_SETS['basic']].copy()
-
     df.dropna(how='all', inplace=True)
     df.sort_index(inplace=True)
     df.ffill(inplace=True)
@@ -48,7 +50,7 @@ def arrange_and_fill(df, ticker):
 
 def save_df_to_csv(df, relative_path):
     """Save DataFrame to a CSV file."""
-    file_path = BASE_DIR / relative_path
+    file_path = ROOT_DIR / 'data' / relative_path
     logger.info(f"Saving DataFrame to {file_path}.")
     file_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(file_path, index=True)
@@ -87,8 +89,8 @@ def plot_price_history(dates, prices, ticker):
 def main(ticker='BTC', start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {ticker}.")
-    raw_data_path = f'data/raw_data_{ticker}.csv'
-    processed_data_path = f'data/processed_data_{ticker}.csv'
+    raw_data_path = f'raw_data_{ticker}.csv'
+    processed_data_path = f'processed_data_{ticker}.csv'
     try:
         df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
         logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
@@ -101,8 +103,6 @@ def main(ticker='BTC', start_date=None, end_date=None, worker=None):
 
 
 if __name__ == '__main__':
-    import argparse
-
     parser = argparse.ArgumentParser(description='Data Preparation')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
     parser.add_argument('--start_date', type=str, required=True, help='Start date')
