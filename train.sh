@@ -11,6 +11,3 @@ python src/feature_engineering.py
 
 # Train the model
 python src/train.py
-
-# Deactivate the conda environment
-conda deactivate

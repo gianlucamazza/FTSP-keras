@@ -1,4 +1,5 @@
 import sys
+import time
 from pathlib import Path
 from tensorflow.keras import mixed_precision
 import numpy as np
@@ -7,7 +8,7 @@ import logger as logger_module
 from train_utils import load_best_params, save_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
 from objective import optimize_hyperparameters
-from typing import Any
+from typing import Any, Optional
 
 # Add the project directory to the sys.path for module resolution
 project_dir = Path(__file__).resolve().parent
@@ -21,7 +22,7 @@ policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
 
-def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json', trial_id=None):
+def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_file: str = 'best_params.json', trial_id: Optional[int] = None):
     """
     Main function to train the model.
 
@@ -64,6 +65,17 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
         if worker is not None and hasattr(worker, 'is_running') and not worker.is_running:
             logger.info("Training stopped early.")
             return
+
+        train_size = len(train_index)
+        val_size = len(test_index)
+        total_size = train_size + val_size
+        train_percentage = (train_size / total_size) * 100
+        val_percentage = (val_size / total_size) * 100
+
+        logger.info(f"Fold {i + 1}/{n_splits} - Training data: {train_percentage:.2f}%, Validation data: {val_percentage:.2f}%")
+
+        # Sleep 5 seconds
+        time.sleep(5)
 
         # Log the training and validation dates for each fold
         train_dates = trainer.df.index[train_index]
@@ -118,9 +130,9 @@ def main(ticker='BTC-USD', worker=None, hyperparameters_file='best_params.json',
         valid_metrics = [(rmse, mae, mape) for rmse, mae, mape in metrics_list if
                          np.isfinite(rmse) and np.isfinite(mae) and np.isfinite(mape)]
         if valid_metrics:
-            average_rmse: Any = np.mean([m[0] for m in valid_metrics])
-            average_mae: Any = np.mean([m[1] for m in valid_metrics])
-            average_mape: Any = np.mean([m[2] for m in valid_metrics])
+            average_rmse: float = np.mean([m[0] for m in valid_metrics])
+            average_mae: float = np.mean([m[1] for m in valid_metrics])
+            average_mape: float = np.mean([m[2] for m in valid_metrics])
             logger.info(
                 f"Average metrics across all folds - RMSE: {average_rmse:.4f}, MAE: {average_mae:.4f}, MAPE: {average_mape:.4f}")
         else:
