@@ -85,6 +85,9 @@ class ModelPredictor:
     def create_input_sequences(self):
         """Create input sequences for prediction."""
         self.prepare_data()
+        if len(self.df) < self.prediction_steps:
+            logger.error(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(self.df)}")
+            raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(self.df)}")
         x = []
         data = self.df.values
         for i in range(len(data) - self.prediction_steps):
