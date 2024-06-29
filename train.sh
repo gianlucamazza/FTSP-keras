@@ -1,16 +1,18 @@
 #!/bin/bash
 
 # Set ticker and date range
-TICKERS=("GLD" "BTC")
-START_DATE="2015-01-01"
+declare -A TICKER_DATES
+TICKER_DATES=( ["GLD"]="2000-01-01" ["BTC"]="2015-01-01" )
 END_DATE="2024-06-29"
 
 # Run cleanup script
 bash cleanup.sh
 
 # Loop through each ticker
-for TICKER in "${TICKERS[@]}"; do
+for TICKER in "${!TICKER_DATES[@]}"; do
   echo "Processing $TICKER"
+
+  START_DATE="${TICKER_DATES[$TICKER]}"
 
   # Model params
   PARAMS="${TICKER}_best_params.json"
