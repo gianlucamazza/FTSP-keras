@@ -114,8 +114,8 @@ class ModelPredictor:
             predictions.append(pred.flatten()[0])
 
             # Update the sequence with the new prediction
-            new_input = np.append(seq[1:], pred.flatten()[0]).reshape(-1, seq.shape[1])
-            seq = np.vstack([seq[1:], new_input])[-self.prediction_steps:]
+            new_input = np.append(seq[1:, :], pred.flatten().reshape(1, -1), axis=0)
+            seq = new_input
 
         return np.array(predictions)
 
