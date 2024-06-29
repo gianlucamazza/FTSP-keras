@@ -96,7 +96,7 @@ class ModelPredictor:
             raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(self.df)}")
         x = []
         data = self.df.values
-        for i in range(len(data) - self.prediction_steps):
+        for i in range(len(data) - self.prediction_steps + 1):
             x.append(data[i:i + self.prediction_steps])
         return np.array(x)
 
