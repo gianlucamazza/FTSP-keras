@@ -9,6 +9,7 @@ import logger as logger_module
 from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 from feature_engineering import process_and_save_features
+from train_utils import load_best_params, save_best_params, calculate_metrics
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -43,15 +44,24 @@ class ModelPredictor:
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
         self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
+        self.params_path = BASE_DIR / 'best_params.json'
 
         logger.info(f"Initializing ModelPredictor for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
         logger.info(f"Scaler path: {self.scaler_path}")
         logger.info(f"Model path: {self.model_path}")
+        logger.info(f"Params path: {self.params_path}")
 
         self.feature_scaler = load_scaler(self.scaler_path)
         self.model = load_model(self.model_path)
         self.df = self.load_dataset()
+
+        self.best_params = load_best_params(self.params_path)
+        if 'train_steps' in self.best_params:
+            self.prediction_steps = self.best_params['train_steps']
+            logger.info(f"Using train_steps from best_params: {self.prediction_steps}")
+        else:
+            logger.warning(f"train_steps not found in best_params, using default: {self.prediction_steps}")
 
     def load_dataset(self):
         """Load the dataset from disk."""

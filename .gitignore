@@ -15,3 +15,4 @@ venv/
 /models/
 /scalers/
 /predictions/
+/ssh_*.json

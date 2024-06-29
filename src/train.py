@@ -1,9 +1,7 @@
 import sys
-import time
 from pathlib import Path
 from tensorflow.keras import mixed_precision
 import numpy as np
-from sklearn.model_selection import TimeSeriesSplit
 import logger as logger_module
 from train_utils import load_best_params, save_best_params, calculate_metrics
 from train_model import train_model, ModelTrainer
