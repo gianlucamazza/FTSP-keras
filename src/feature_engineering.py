@@ -1,6 +1,6 @@
 import sys
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, RobustScaler
 import joblib
 from pathlib import Path
 import featuretools as ft
@@ -40,10 +40,16 @@ def clean_data(df: pd.DataFrame):
     check_data(df, "cleaning data")
 
 
-def normalize_features(df: pd.DataFrame, columns_to_normalize: list):
-    """Normalize specified features in the DataFrame using MinMaxScaler."""
+def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type='MinMaxScaler'):
+    """Normalize specified features in the DataFrame using the specified scaler."""
     logger.info("Normalizing features.")
-    scaler = MinMaxScaler()
+    if scaler_type == 'MinMaxScaler':
+        scaler = MinMaxScaler(feature_range=(0.1, 0.9))
+    elif scaler_type == 'RobustScaler':
+        scaler = RobustScaler()
+    else:
+        raise ValueError(f"Unsupported scaler type: {scaler_type}")
+
     df[columns_to_normalize] = scaler.fit_transform(df[columns_to_normalize])
     check_data(df, "normalizing features")
     return df, scaler
@@ -96,7 +102,8 @@ def process_and_save_features(df: pd.DataFrame, ticker: str):
 
         # Normalize features
         columns_to_normalize = feature_matrix.columns.tolist()
-        feature_matrix, feature_scaler = normalize_features(feature_matrix, columns_to_normalize)
+        feature_matrix, feature_scaler = normalize_features(feature_matrix, columns_to_normalize,
+                                                            scaler_type='RobustScaler')
 
         save_scaler(feature_scaler, ticker)
 

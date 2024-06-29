@@ -82,20 +82,28 @@ class ModelPredictor:
 
         self.df[scaler_columns] = self.feature_scaler.transform(self.df[scaler_columns])
 
+    def create_input_sequences(self):
+        """Create input sequences for prediction."""
+        self.prepare_data()
+        x = []
+        data = self.df.values
+        for i in range(len(data) - self.prediction_steps):
+            x.append(data[i:i + self.prediction_steps])
+        return np.array(x)
+
     def predict(self):
         """Make predictions using the trained model."""
-        self.prepare_data()
-        x = self.df.values[self.prediction_steps]
+        x = self.create_input_sequences()
         predictions = []
 
-        for _ in range(self.prediction_steps):
-            x_input = np.expand_dims(x, axis=0)
+        for seq in x:
+            x_input = np.expand_dims(seq, axis=0)
             pred = self.model.predict(x_input)
             predictions.append(pred.flatten()[0])
 
             # Update input with the latest prediction
-            new_input = np.append(x[-1, 1:], pred.flatten())
-            x = np.vstack([x[1:], new_input])
+            new_input = np.append(seq[-1, 1:], pred.flatten())
+            seq = np.vstack([seq[1:], new_input])
 
         return np.array(predictions)
 
