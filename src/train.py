@@ -87,9 +87,6 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
         logger.info(
             f"Fold {i + 1}/{n_splits} - Training data: {train_percentage:.2f}%, Validation data: {val_percentage:.2f}%")
 
-        # Sleep 5 seconds
-        time.sleep(5)
-
         # Log the training and validation dates for each fold
         train_dates = trainer.df.index[train_index]
         val_dates = trainer.df.index[test_index]
@@ -153,5 +150,6 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
 
     logger.info("Training process completed.")
 
-    if __name__ == '__main__':
-        main()
+
+if __name__ == '__main__':
+    main()
