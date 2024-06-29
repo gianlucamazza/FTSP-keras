@@ -104,10 +104,6 @@ class ModelPredictor:
             pred = self.model.predict(x_input)
             predictions.append(pred.flatten()[0])
 
-            # Update input with the latest prediction
-            new_input = np.append(seq[-1, 1:], pred.flatten())
-            seq = np.vstack([seq[1:], new_input])
-
         return np.array(predictions)
 
     def inverse_transform_predictions(self, predictions):
