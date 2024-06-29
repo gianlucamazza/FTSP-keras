@@ -6,7 +6,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
@@ -18,26 +17,26 @@ from src.config import COLUMN_SETS
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
+from src.models.callbacks import prepare_callbacks
 
 # Setup logger
-ROOT_DIR = Path(__file__).parent.parent
 logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
-                ticker: str, fold_index: int, parameters: Dict, trial_id: int) -> Tuple[Model, dict]:
+                ticker: str, fold_index: int, params: Dict, trial_id: int) -> Tuple[Model, dict]:
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
 
     model = build_model(
-        input_shape=(parameters['train_steps'], len(COLUMN_SETS['to_scale'])),
-        neurons=parameters['neurons'],
-        dropout=parameters['dropout'],
-        additional_layers=parameters['additional_layers'],
-        bidirectional=parameters['bidirectional'],
-        l1_reg=parameters.get('l1_reg', 1e-5),
-        l2_reg=parameters.get('l2_reg', 1e-5),
+        input_shape=(params['train_steps'], len(COLUMN_SETS['to_scale'])),
+        neurons=params['neurons'],
+        dropout=params['dropout'],
+        additional_layers=params['additional_layers'],
+        bidirectional=params['bidirectional'],
+        l1_reg=params.get('l1_reg', 1e-5),
+        l2_reg=params.get('l2_reg', 1e-5),
         optimizer='adam'
     )
 
@@ -47,34 +46,16 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         metrics=['mean_squared_error']
     )
 
-    tensorboard_log_dir = ROOT_DIR / 'logs' / 'tensorboard' / f'fold_{fold_index}'
-    tensorboard_callback = TensorBoard(log_dir=str(tensorboard_log_dir), histogram_freq=1)
-
-    model_dir_path = Path(ROOT_DIR / model_dir)
+    model_dir_path = Path(model_dir)
     model_dir_path.mkdir(parents=True, exist_ok=True)
 
-    model_checkpoint = ModelCheckpoint(
-        filepath=str(model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"),
-        monitor='val_loss',
-        save_best_only=True,
-        save_weights_only=False,
-        verbose=1
-    )
-
-    early_stopping = EarlyStopping(
-        monitor='val_loss',
-        patience=parameters['early_stopping_patience'],
-        verbose=1,
-        restore_best_weights=True
-    )
-
-    callbacks = [model_checkpoint, early_stopping, tensorboard_callback]
+    callbacks = prepare_callbacks(model_dir=model_dir_path, ticker=ticker, monitor='val_loss', epoch=0)
 
     try:
         history = model.fit(
             x_train, y_train,
-            epochs=parameters['epochs'],
-            batch_size=parameters['batch_size'],
+            epochs=params['epochs'],
+            batch_size=params['batch_size'],
             validation_data=(x_val, y_val),
             callbacks=callbacks,
             verbose=1
@@ -167,9 +148,13 @@ def main(ticker: str, params: Dict) -> None:
     logger.debug(f"x_train shape: {x_train.shape}, y_train shape: {y_train.shape}")
     logger.debug(f"x_val shape: {x_val.shape}, y_val shape: {y_val.shape}")
 
-    model_dir = ROOT_DIR / ModelTrainer.MODELS_FOLDER
+    model_dir = ModelTrainer.MODELS_FOLDER
     model, history = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, 0, params, 0)
+
+    # Utilize model and history if needed
     logger.info(f"Model training for ticker {ticker} completed.")
+    logger.info(f"Final training loss: {history.history['loss'][-1]}")
+    logger.info(f"Final validation loss: {history.history['val_loss'][-1]}")
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolu
 from src.logging.logger import setup_logger
 
 # Setup logger
-project_dir = Path(__file__).resolve().parent.parent.parent
 logger = setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
 
 

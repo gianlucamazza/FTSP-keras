@@ -58,8 +58,7 @@ pd.DataFrame, object):
 
 def save_scaler(scaler, ticker: str) -> None:
     """Save the scaler object to disk."""
-    path = ROOT_DIR / f'scalers/feature_scaler_{ticker}.pkl'
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = f'scalers/feature_scaler_{ticker}.pkl'
     joblib.dump(scaler, path)
     logger.info(f"Feature scaler saved at {path}")
 
