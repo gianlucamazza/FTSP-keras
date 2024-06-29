@@ -9,7 +9,7 @@ import logger as logger_module
 from config import COLUMN_SETS, CLOSE
 from technical_indicators import calculate_technical_indicators
 from feature_engineering import process_and_save_features
-from train_utils import load_best_params, save_best_params, calculate_metrics
+from train_utils import load_best_params
 
 # Add the project directory to the sys.path
 project_dir = Path(__file__).resolve().parent
@@ -38,9 +38,8 @@ class ModelPredictor:
     MODELS_FOLDER = 'models'
     PREDICTIONS_FOLDER = 'predictions'
 
-    def __init__(self, ticker='BTC-USD', prediction_steps=30):
+    def __init__(self, ticker='BTC-USD'):
         self.ticker = ticker
-        self.prediction_steps = prediction_steps
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
         self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
@@ -57,11 +56,8 @@ class ModelPredictor:
         self.df = self.load_dataset()
 
         self.best_params = load_best_params(self.params_path)
-        if 'train_steps' in self.best_params:
-            self.prediction_steps = self.best_params['train_steps']
-            logger.info(f"Using train_steps from best_params: {self.prediction_steps}")
-        else:
-            logger.warning(f"train_steps not found in best_params, using default: {self.prediction_steps}")
+        self.prediction_steps = self.best_params.get('train_steps', 30)
+        logger.info(f"Using train_steps: {self.prediction_steps}")
 
     def load_dataset(self):
         """Load the dataset from disk."""
@@ -199,7 +195,7 @@ class ModelPredictor:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
 
 
-def main(ticker='BTC-USD', prediction_steps=30):
+def main(ticker='BTC-USD'):
     """Main function to run the prediction script."""
     # Process and save features before running the prediction
     processed_data_path = BASE_DIR / f'data/processed_data_{ticker}.csv'
@@ -212,7 +208,7 @@ def main(ticker='BTC-USD', prediction_steps=30):
             logger.error(f"Raw data file not found: {raw_data_path}")
             return
 
-    predictor = ModelPredictor(ticker, prediction_steps)
+    predictor = ModelPredictor(ticker)
     predictor.run()
 
 
