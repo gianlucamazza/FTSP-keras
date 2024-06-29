@@ -16,3 +16,4 @@ venv/
 /scalers/
 /predictions/
 /ssh_*.json
+best_params.json
