@@ -84,7 +84,7 @@ def plot_price_history(dates, prices, ticker):
     plt.show()
 
 
-def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
+def main(ticker='BTC', start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {ticker}.")
     raw_data_path = f'data/raw_data_{ticker}.csv'

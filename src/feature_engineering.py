@@ -121,7 +121,7 @@ def process_and_save_features(df: pd.DataFrame, ticker: str):
         raise
 
 
-def main(ticker: str = 'BTC-USD', worker=None):
+def main(ticker: str = 'BTC', worker=None):
     """Main function to start feature engineering process for a given ticker."""
     logger.info(f"Starting feature engineering for {ticker}.")
     file_path = Path(BASE_DIR / f'data/processed_data_{ticker}.csv')

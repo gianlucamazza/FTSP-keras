@@ -20,7 +20,7 @@ policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
 
-def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_file: str = 'best_params.json', trial_id: Optional[int] = None):
+def main(ticker: str = 'BTC', worker: Optional[Any] = None, hyperparameters_file: str = 'best_params.json', trial_id: Optional[int] = None):
     """
     Main function to train the model.
 
