@@ -36,7 +36,7 @@ def main(ticker: str = 'BTC', worker: Optional[Any] = None, hyperparameters_file
 
     if not hyperparameters:
         logger.info("Optimizing hyperparameters...")
-        optimize_hyperparameters(n_trials=50)
+        optimize_hyperparameters(ticker=ticker, n_trials=50)
         hyperparameters = load_best_params(hyperparameters_path)
         logger.info(f"Optimized hyperparameters: {hyperparameters}")
         save_best_params(hyperparameters, hyperparameters_path)
