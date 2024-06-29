@@ -10,8 +10,9 @@ BASE_DIR = Path(__file__).parent.parent
 logger = logger_module.setup_logger('train_utils_logger', BASE_DIR / 'logs', 'train_utils.log')
 
 
-def save_best_params(params, path):
-    with open(path, 'w') as f:
+def save_best_params(params, file_path, ticker):
+    params['ticker'] = ticker
+    with open(file_path, 'w') as f:
         json.dump(params, f, indent=4)
 
 

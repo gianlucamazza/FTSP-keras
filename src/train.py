@@ -150,4 +150,10 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Train Model')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+
+    args = parser.parse_args()
+    main(ticker=args.ticker, worker=None, hyperparameters_file=args.best_params, trial_id=None)

@@ -140,4 +140,10 @@ def main(ticker: str = 'BTC-USD', worker=None):
 
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD')
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Feature Engineering')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+
+    args = parser.parse_args()
+    main(ticker=args.ticker)

@@ -133,7 +133,7 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
 
     # Save the best parameters
     best_params_path = BASE_DIR / 'best_params.json'
-    save_best_params(trial.params, best_params_path)
+    save_best_params(trial.params, best_params_path, ticker)
     logger.info(f"Best parameters saved at {best_params_path}")
 
 

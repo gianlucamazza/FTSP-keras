@@ -101,4 +101,12 @@ def main(ticker='BTC-USD', start_date=None, end_date=None, worker=None):
 
 
 if __name__ == '__main__':
-    main(ticker='BTC-USD', start_date='2015-01-01', end_date=None)
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Data Preparation')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+    parser.add_argument('--start_date', type=str, required=True, help='Start date')
+    parser.add_argument('--end_date', type=str, help='End date')
+
+    args = parser.parse_args()
+    main(ticker=args.ticker, start_date=args.start_date, end_date=args.end_date)
