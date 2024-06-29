@@ -1,8 +1,15 @@
 #!/bin/bash
 
+if [ -z "$BASH_VERSION" ]; then
+  echo "This script requires Bash. Please run with Bash."
+  exit 1
+fi
+
 # Set ticker and date range
-declare -A TICKER_DATES
-TICKER_DATES=( ["GLD"]="2000-01-01" ["BTC"]="2015-01-01" )
+declare -A TICKER_DATES=(
+  ["GLD"]="2000-01-01"
+  ["BTC"]="2015-01-01"
+)
 END_DATE="2024-06-29"
 
 # Run cleanup script
