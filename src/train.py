@@ -154,6 +154,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Train Model')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+    parser.add_argument('--best_params', type=str, required=True, help='Path to the best parameters file')
 
     args = parser.parse_args()
     main(ticker=args.ticker, worker=None, hyperparameters_file=args.best_params, trial_id=None)
