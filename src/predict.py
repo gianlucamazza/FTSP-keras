@@ -90,13 +90,14 @@ class ModelPredictor:
     def create_input_sequences(self):
         """Create input sequences for prediction."""
         self.prepare_data()
-        if len(self.df) < self.prediction_steps:
-            logger.error(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(self.df)}")
-            raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(self.df)}")
+        # Use only the last 'prediction_steps' days
+        df_last_30 = self.df.tail(self.prediction_steps)
+        if len(df_last_30) < self.prediction_steps:
+            logger.error(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
+            raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
         x = []
-        data = self.df.values
-        for i in range(len(data) - self.prediction_steps + 1):
-            x.append(data[i:i + self.prediction_steps])
+        data = df_last_30.values
+        x.append(data[:self.prediction_steps])
         return np.array(x)
 
     def predict(self):
