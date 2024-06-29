@@ -52,8 +52,20 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
 
     # Set up cross-validation with TimeSeriesSplit
     n_splits = hyperparameters['n_folds']
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    splits = list(tscv.split(trainer.x))
+    split_ratio = 0.1
+    splits = []
+
+    logger.info(f"Number of splits: {n_splits}")
+
+    for i in range(n_splits):
+        # Create a rolling window split
+        train_size = int((1 - split_ratio) * len(trainer.x))
+        test_size = len(trainer.x) - train_size
+
+        train_index = np.arange(0, train_size)
+        test_index = np.arange(train_size, len(trainer.x))
+
+        splits.append((train_index, test_index))
 
     logger.info(f"Number of splits: {n_splits}")
 
@@ -72,7 +84,8 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
         train_percentage = (train_size / total_size) * 100
         val_percentage = (val_size / total_size) * 100
 
-        logger.info(f"Fold {i + 1}/{n_splits} - Training data: {train_percentage:.2f}%, Validation data: {val_percentage:.2f}%")
+        logger.info(
+            f"Fold {i + 1}/{n_splits} - Training data: {train_percentage:.2f}%, Validation data: {val_percentage:.2f}%")
 
         # Sleep 5 seconds
         time.sleep(5)
@@ -140,6 +153,5 @@ def main(ticker: str = 'BTC-USD', worker: Optional[Any] = None, hyperparameters_
 
     logger.info("Training process completed.")
 
-
-if __name__ == '__main__':
-    main()
+    if __name__ == '__main__':
+        main()
