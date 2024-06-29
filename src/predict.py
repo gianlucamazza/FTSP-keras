@@ -100,15 +100,22 @@ class ModelPredictor:
         x.append(data[:self.prediction_steps])
         return np.array(x)
 
-    def predict(self):
+    def predict(self, num_predictions=10):
         """Make predictions using the trained model."""
         x = self.create_input_sequences()
         predictions = []
 
-        for seq in x:
+        # Start with the last sequence
+        seq = x[-1]
+
+        for _ in range(num_predictions):
             x_input = np.expand_dims(seq, axis=0)
             pred = self.model.predict(x_input)
             predictions.append(pred.flatten()[0])
+
+            # Update the sequence with the new prediction
+            new_input = np.append(seq[1:], pred.flatten()[0]).reshape(-1, seq.shape[1])
+            seq = np.vstack([seq[1:], new_input])[-self.prediction_steps:]
 
         return np.array(predictions)
 
