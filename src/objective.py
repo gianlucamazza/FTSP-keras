@@ -49,7 +49,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     try:
-        trainer = ModelTrainer(ticker='BTC-USD', parameters=parameters)
+        trainer = ModelTrainer(ticker='BTC', parameters=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
         raise

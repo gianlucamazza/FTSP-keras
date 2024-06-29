@@ -37,7 +37,7 @@ class ModelPredictor:
     MODELS_FOLDER = 'models'
     PREDICTIONS_FOLDER = 'predictions'
 
-    def __init__(self, ticker='BTC-USD'):
+    def __init__(self, ticker='BTC'):
         self.ticker = ticker
         self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
@@ -203,7 +203,7 @@ class ModelPredictor:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
 
 
-def main(ticker='BTC-USD'):
+def main(ticker='BTC'):
     """Main function to run the prediction script."""
     # Process and save features before running the prediction
     processed_data_path = BASE_DIR / f'data/processed_data_{ticker}.csv'
