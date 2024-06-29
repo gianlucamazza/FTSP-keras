@@ -113,7 +113,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     return float(np.mean(scores)) if scores else float('inf')
 
 
-def optimize_hyperparameters(n_trials: int = 50) -> None:
+def optimize_hyperparameters(ticker, n_trials: int = 50) -> None:
     logger.info("Optimizing hyperparameters")
     tensorboard_log_dir = BASE_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
@@ -136,6 +136,3 @@ def optimize_hyperparameters(n_trials: int = 50) -> None:
     save_best_params(trial.params, best_params_path, ticker)
     logger.info(f"Best parameters saved at {best_params_path}")
 
-
-if __name__ == '__main__':
-    optimize_hyperparameters()
