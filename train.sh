@@ -8,7 +8,7 @@ fi
 # Set ticker and date range
 declare -A TICKER_DATES=(
   ["GLD"]="2000-01-01"
-  ["BTC"]="2015-01-01"
+  ["BTC"]="2018-01-01"
 )
 END_DATE="2024-06-29"
 
