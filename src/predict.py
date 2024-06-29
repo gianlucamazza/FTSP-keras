@@ -30,7 +30,6 @@ def load_scaler(path):
         logger.error(f"Error loading scaler from {path}: {e}")
         raise
 
-
 class ModelPredictor:
     COLUMN_TO_PREDICT = CLOSE
     DATA_FOLDER = 'data'
