@@ -7,7 +7,7 @@ optuna==3.6.1
 pandas>=1.5.0,<2.1.0
 PyQt5==5.15.10
 scikit-learn==1.5.0
-statsmodels==0.14.2
+statsmodels>=0.14.2,<0.15.0
 tensorflow>=2.15.1,<2.16.2
 yfinance==0.2.40
 tensorflow-metadata>=1.15.0,<1.16.0
