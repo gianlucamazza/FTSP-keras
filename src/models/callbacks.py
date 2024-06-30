@@ -3,11 +3,12 @@ import datetime
 from pathlib import Path
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 
+from src.logging.logger import setup_logger
+
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.logging.logger import setup_logger
 
 ROOT_DIR = project_dir
 logger = setup_logger('callback_logger', 'logs', 'callback_logger.log')

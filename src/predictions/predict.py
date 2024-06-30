@@ -5,6 +5,7 @@ import joblib
 from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
+
 from src.logging import logger as logger_module
 from src.config import COLUMN_SETS, CLOSE
 from src.data.technical_indicators import calculate_technical_indicators
@@ -94,8 +95,10 @@ class ModelPredictor:
         # Use only the last 'prediction_steps' days
         df_last_30 = self.df.tail(self.prediction_steps)
         if len(df_last_30) < self.prediction_steps:
-            logger.error(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
-            raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
+            logger.error(f"Not enough data to create input sequences. "
+                         f"Required: {self.prediction_steps}, available: {len(df_last_30)}")
+            raise ValueError(f"Not enough data to create input sequences. "
+                             f"Required: {self.prediction_steps}, available: {len(df_last_30)}")
         x = []
         data = df_last_30.values
         x.append(data[:self.prediction_steps])

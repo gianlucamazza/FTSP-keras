@@ -45,7 +45,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type: str = 'RobustScaler') -> (
-pd.DataFrame, object):
+        pd.DataFrame, object):
     """Normalize specified features in the DataFrame using the specified scaler."""
     logger.info("Normalizing features.")
     scaler = MinMaxScaler(feature_range=(0.1, 0.9)) if scaler_type == 'MinMaxScaler' else RobustScaler()
