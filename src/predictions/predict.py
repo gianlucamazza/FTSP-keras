@@ -6,15 +6,14 @@ from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
 
-from src.config import COLUMN_SETS, CLOSE
-from src.data.technical_indicators import calculate_technical_indicators
-from src.data.feature_engineering import process_and_save_features
-from src.training.train_utils import load_best_params
-
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
+from src.config import COLUMN_SETS, CLOSE
+from src.data.technical_indicators import calculate_technical_indicators
+from src.data.feature_engineering import process_and_save_features
+from src.training.train_utils import load_best_params
 
 ROOT_DIR = project_dir
 logger = setup_logger('predict_logger', 'logs', 'predict.log')

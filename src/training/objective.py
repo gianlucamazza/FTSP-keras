@@ -56,7 +56,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
 
     try:
         from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
-        trainer = ModelTrainer(ticker=ticker, p=parameters)
+        trainer = ModelTrainer(ticker=ticker, params=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
         raise
