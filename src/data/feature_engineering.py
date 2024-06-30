@@ -12,7 +12,7 @@ from statsmodels.tsa.stattools import adfuller
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from indicators.technical_indicators import calculate_technical_indicators
+from src.indicators.technical_indicators import calculate_technical_indicators
 from src.config import COLUMN_SETS, CLOSE
 from src.logging.logger import setup_logger
 
@@ -141,7 +141,7 @@ def main(ticker: str, worker=None) -> None:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Feature Engineering')
-    parser.add_argument('--name', type=str, required=True, help='Ticker name')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker')
     parser.add_argument('--scaler', type=str, default='RobustScaler', choices=['MinMaxScaler', 'RobustScaler'],
                         help='Scaler type')
     args = parser.parse_args()
