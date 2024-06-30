@@ -6,12 +6,12 @@ import pmdarima as pm
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 import joblib
 from statsmodels.tsa.stattools import adfuller
-from utils import load_from_json, save_to_json, update_json
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
+from src.utils import load_from_json, save_to_json
 from src.config import COLUMN_SETS, CLOSE
 from src.logging.logger import setup_logger
 
