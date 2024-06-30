@@ -12,7 +12,7 @@ from typing import Tuple, Optional, Dict
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.config import COLUMN_SETS
+from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
@@ -153,7 +153,7 @@ def main(ticker: str, parameters: Dict) -> None:
     trainer = ModelTrainer(ticker=ticker, params=parameters)
 
     # Splitting data into training and validation sets
-    split_index = int(len(trainer.x) * 0.8)
+    split_index = int(len(trainer.x) * TRAIN_VALIDATION_SPLIT)
     x_train, y_train = trainer.x[:split_index], trainer.y[:split_index]
     x_val, y_val = trainer.x[split_index:], trainer.y[split_index:]
 
@@ -193,7 +193,7 @@ def main(ticker: str, parameters: Dict) -> None:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train LSTM model for financial prediction')
-    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker')
 
     args = parser.parse_args()
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'

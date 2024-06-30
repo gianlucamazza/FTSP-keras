@@ -60,3 +60,4 @@ COLUMN_SETS = {
     ]
 }
 
+TRAIN_VALIDATION_SPLIT = 0.8
