@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolu
 from src.logging.logger import setup_logger
 
 # Setup logger
-logger = setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
+logger = setup_logger('utils_logger', 'logs', 'utils.log')
 
 
 def save_best_params(params: dict, file_path: Path, ticker: str) -> None:
@@ -19,7 +19,7 @@ def save_best_params(params: dict, file_path: Path, ticker: str) -> None:
         logger.error(f"Failed to save parameters: {e}")
 
 
-def load_best_params(path: Path) -> None:
+def load_best_params(path: Path) -> dict:
     """Load the best model parameters from a JSON file."""
     try:
         if path.exists():
@@ -28,10 +28,10 @@ def load_best_params(path: Path) -> None:
                 return json.load(f)
         else:
             logger.warning(f"No parameters file found at {path}")
-            return None
+            return {}
     except IOError as e:
         logger.error(f"Failed to load parameters: {e}")
-        return None
+        return {}
 
 
 def calculate_metrics(model, x_test: np.ndarray, y_test: np.ndarray) -> tuple:

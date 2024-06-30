@@ -21,9 +21,6 @@ for TICKER in "${!TICKER_DATES[@]}"; do
 
   START_DATE="${TICKER_DATES[$TICKER]}"
 
-  # Model params
-  PARAMS="${TICKER}_best_params.json"
-
   # Prepare the data
   python src/data/data_preparation.py --ticker="$TICKER" --start_date="$START_DATE" --end_date="$END_DATE"
 
@@ -31,5 +28,5 @@ for TICKER in "${!TICKER_DATES[@]}"; do
   python src/data/feature_engineering.py --ticker="$TICKER"
 
   # Train the model
-  python src/training/train_model.py --ticker="$TICKER" --params="$PARAMS"
+  python src/training/train_model.py --ticker="$TICKER"
 done

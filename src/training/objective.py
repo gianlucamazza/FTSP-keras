@@ -139,7 +139,8 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
-    study = optuna.create_study(direction='minimize')
+    study_name = f'{ticker}_study'  # Adding a study name
+    study = optuna.create_study(direction='minimize', study_name=study_name)
     study.optimize(lambda trial: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
