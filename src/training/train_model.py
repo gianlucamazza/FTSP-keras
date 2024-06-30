@@ -8,7 +8,6 @@ import pandas as pd
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
-from src.training.objective import optimize_hyperparameters
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -20,6 +19,7 @@ from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.training.train_utils import load_best_params
+from src.training.objective import optimize_hyperparameters
 
 # Setup logger
 logger = setup_logger('train_model', 'logs', 'train_model.log')
@@ -137,10 +137,10 @@ class ModelTrainer:
         return np.array(x), np.array(y)
 
 
-def main(ticker: str, params: Dict) -> None:
+def main(ticker: str, parameters: Dict) -> None:
     """Main function to start the model training."""
     logger.info(f"Starting model training for ticker {ticker}")
-    trainer = ModelTrainer(ticker=ticker, params=params)
+    trainer = ModelTrainer(ticker=ticker, params=parameters)
 
     # Splitting data into training and validation sets
     split_index = int(len(trainer.x) * 0.8)
@@ -167,9 +167,10 @@ if __name__ == '__main__':
     params_path = Path(f'{args.ticker}_best_params.json')
     params = load_best_params(params_path)
 
-    if params is None:
+    if not params:
         logger.error(f"Parameters file not found: {params_path}")
         logger.info("Starting hyperparameter optimization...")
         params = optimize_hyperparameters(ticker=args.ticker)
 
-    main(ticker=args.ticker, params=params)
+    main(ticker=args.ticker, parameters=params)
+
