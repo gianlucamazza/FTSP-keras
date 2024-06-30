@@ -35,7 +35,7 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', f
     log_dir = ROOT_DIR / 'logs' / ticker / timestamp
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    filepath = model_dir / f"{ticker}_fold_{fold_index}_{monitor}.keras"
+    filepath = model_dir / ticker / f"{ticker}_fold_{fold_index}_{monitor}.keras"
 
     callbacks = [
         EarlyStopping(monitor=monitor, patience=10, verbose=1, restore_best_weights=True),
