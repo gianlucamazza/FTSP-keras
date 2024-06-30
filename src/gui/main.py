@@ -1,5 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLineEdit, QTextEdit, QProgressBar
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout,
+                             QWidget, QPushButton, QLineEdit, QTextEdit, QProgressBar)
 from PyQt5.uic import loadUi
 from pathlib import Path
 import logging
@@ -9,13 +10,14 @@ import pandas as pd
 project_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_dir))
 
-from src.training.train import main as train_main
+from src.training.train_model import train_model
 from src.data.data_preparation import main as data_preparation_main
-from src.data.feature_engineering import main as feature_engineering_main
+from src.data.feature_engineering import normalize_features
 from src.predictions.predict import main as predict_main
 from gui.worker import Worker
 from gui.mpl_canvas import MplCanvas
 from gui.qtext_edit_logger import QTextEditLogger
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -77,7 +79,7 @@ class MainWindow(QMainWindow):
             return
 
         ticker = self.tickerInput.text()
-        self.worker = Worker(train_main, ticker)
+        self.worker = Worker(train_model, ticker)
         self.worker.info.connect(self.update_log)
         self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_process_finished)
@@ -111,7 +113,7 @@ class MainWindow(QMainWindow):
             return
 
         ticker = self.tickerInput.text()
-        self.worker = Worker(feature_engineering_main, ticker)
+        self.worker = Worker(normalize_features(), ticker)
         self.worker.info.connect(self.update_log)
         self.worker.error.connect(self.update_log)
         self.worker.finished.connect(self.on_feature_engineering_finished)
@@ -196,6 +198,7 @@ class MainWindow(QMainWindow):
     
     def update_progress(self, value):
         self.progressBar.setValue(value)
+
 
 if __name__ == "___MAIN__":
     app = QApplication(sys.argv)

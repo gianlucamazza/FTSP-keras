@@ -11,7 +11,7 @@ sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
 from src.config import COLUMN_SETS, CLOSE
-from src.data.technical_indicators import calculate_technical_indicators
+from src.indicators.technical_indicators import calculate_technical_indicators
 from src.data.feature_engineering import process_and_save_features
 from src.training.train_utils import load_best_params
 

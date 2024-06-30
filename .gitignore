@@ -18,3 +18,4 @@ venv/
 /ssh_*.json
 /src/lstm_price_prediction.egg-info/
 /dist/
+/build/

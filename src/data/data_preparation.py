@@ -33,9 +33,9 @@ def download_financial_data(ticker, start_date, end_date):
         raise
 
 
-def arrange_and_fill(df, ticker):
+def arrange_and_fill(df, name):
     """Arrange and fill missing data in the DataFrame."""
-    logger.info(f"Arranging and filling missing data for {ticker}.")
+    logger.info(f"Arranging and filling missing data for {name}.")
     df = df.reset_index()
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
@@ -55,16 +55,16 @@ def save_df_to_csv(df, relative_path):
     df.to_csv(file_path, index=True)
 
 
-def get_financial_data(ticker, file_path=None, start_date=None, end_date=None):
+def get_financial_data(ticker: str, name: str, file_path=None, start_date=None, end_date=None):
     """Download, arrange, fill, and save financial data for a given ticker."""
     try:
         df = download_financial_data(ticker, start_date, end_date)
-        df = arrange_and_fill(df, ticker)
+        df = arrange_and_fill(df, name)
         save_df_to_csv(df, file_path)
-        logger.info(f"Data for {ticker} successfully processed and saved.")
+        logger.info(f"Data for {name} successfully processed and saved.")
         return df
     except Exception as e:
-        logger.error(f"Error in processing data for {ticker}: {e}")
+        logger.error(f"Error in processing data for {name}: {e}")
         raise
 
 
@@ -85,27 +85,28 @@ def plot_price_history(dates, prices, ticker):
     plt.show()
 
 
-def main(ticker='BTC', start_date=None, end_date=None, worker=None):
+def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
-    logger.info(f"Starting data preparation for {ticker}.")
-    raw_data_path = f'raw_data_{ticker}.csv'
-    processed_data_path = f'processed_data_{ticker}.csv'
+    logger.info(f"Starting data preparation for {label}.")
+    raw_data_path = f'raw_data_{label}.csv'
+    processed_data_path = f'processed_data_{label}.csv'
     try:
         df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
         logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
         save_df_to_csv(df, processed_data_path)
-        logger.info(f'Finished data preparation for {ticker}.')
+        logger.info(f'Finished data preparation for {label}.')
         if worker and not worker.is_running():
             return
     except Exception as e:
-        logger.error(f"Failed to complete data preparation for {ticker}: {e}")
+        logger.error(f"Failed to complete data preparation for {label}: {e}")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Data Preparation')
-    parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
+    parser.add_argument('--yfinance_ticker', type=str, required=True, help='Yearn Finance Symbol')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker label')
     parser.add_argument('--start_date', type=str, required=True, help='Start date')
     parser.add_argument('--end_date', type=str, help='End date')
 
     args = parser.parse_args()
-    main(ticker=args.ticker, start_date=args.start_date, end_date=args.end_date)
+    main(ticker=args.ticker, label=args.label, start_date=args.start_date, end_date=args.end_date)

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.config import COLUMN_SETS
 from src.logging.logger import setup_logger
-from src.data.technical_indicators import calculate_technical_indicators
+from indicators.technical_indicators import calculate_technical_indicators
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent

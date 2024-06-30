@@ -5,12 +5,11 @@ if [ -z "$BASH_VERSION" ]; then
   exit 1
 fi
 
-# Set ticker and date range
+# Set ticker, date range, and names
 declare -A TICKER_DATES=(
-  ["GLD"]="2000-01-01"
-  ["BTC-USD"]="2010-01-01"
+  ["GC=F"]="2000-01-01,GOLD"
+  ["BTC-USD"]="2010-01-01,BTC"
 )
-END_DATE="2024-06-29"
 
 # Run cleanup script
 bash cleanup.sh
@@ -19,14 +18,14 @@ bash cleanup.sh
 for TICKER in "${!TICKER_DATES[@]}"; do
   echo "Processing $TICKER"
 
-  START_DATE="${TICKER_DATES[$TICKER]}"
+  IFS=',' read -r START_DATE NAME <<< "${TICKER_DATES[$TICKER]}"
 
   # Prepare the data
-  python src/data/data_preparation.py --ticker="$TICKER" --start_date="$START_DATE" --end_date="$END_DATE"
+  python src/data/data_preparation.py --ticker="$TICKER"  --name="$NAME" --start_date="$START_DATE"
 
   # Setup feature engineering
-  python src/data/feature_engineering.py --ticker="$TICKER"
+  python src/data/feature_engineering.py --ticker="$TICKER" --name="$NAME"
 
   # Train the model
-  python src/training/train_model.py --ticker="$TICKER"
+  python src/training/train_model.py --ticker="$TICKER" --name="$NAME"
 done
