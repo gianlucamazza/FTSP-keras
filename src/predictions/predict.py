@@ -1,4 +1,5 @@
 import sys
+import argparse
 import pandas as pd
 import numpy as np
 import joblib
@@ -227,4 +228,7 @@ def main(ticker: str):
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Data Prediction')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker label')
+
+    main(ticker=parser.parse_args().ticker)
