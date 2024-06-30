@@ -209,7 +209,7 @@ class ModelPredictor:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
 
 
-def main(ticker='BTC'):
+def main(ticker: str):
     """Main function to run the prediction script."""
     # Process and save features before running the prediction
     processed_data_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
