@@ -172,8 +172,10 @@ class ModelPredictor:
         plt.scatter(actual_data.idxmax(), actual_data.max(), color='red', marker='o', label='Max Actual')
         plt.scatter(actual_data.idxmin(), actual_data.min(), color='green', marker='o', label='Min Actual')
         plt.scatter(actual_data.index[-1], actual_data.iloc[-1], color='purple', marker='o', label='Last Actual')
-        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o', label='First Predicted')
-        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o', label='Last Predicted')
+        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o',
+                    label='First Predicted')
+        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o',
+                    label='Last Predicted')
 
         plt.legend()
         plt.title(f'{self.ticker} Close Price Prediction')
@@ -183,7 +185,8 @@ class ModelPredictor:
         plt.xticks(rotation=45)
 
         # Add a shaded area for prediction period
-        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
+        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3,
+                    label='Prediction Period')
 
         plt.tight_layout()
 
