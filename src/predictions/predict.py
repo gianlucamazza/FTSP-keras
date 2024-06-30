@@ -42,7 +42,7 @@ class ModelPredictor:
         self.ticker = ticker
         self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = ROOT_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
-        self.model_path = ROOT_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
+        self.model_path = ROOT_DIR / f'{self.MODELS_FOLDER}/{self.ticker}_best_best.keras'
         self.params_path = ROOT_DIR / f'{self.ticker}_best_params.json'
 
         logger.info(f"Initializing ModelPredictor for ticker {ticker}")
