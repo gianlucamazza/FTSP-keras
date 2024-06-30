@@ -10,12 +10,13 @@ import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from typing import Dict
 
+from src.logging.logger import setup_logger
+from src.training.train_utils import save_best_params
+
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.logging.logger import setup_logger
-from src.training.train_utils import save_best_params
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -88,7 +89,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
         try:
             model, history = train_model(
                 x_train, y_train, x_val, y_val,
-                model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER),
+                model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER / trainer.ticker),
                 ticker=trainer.ticker,
                 fold_index=i,
                 trial_id=trial_id,
@@ -143,7 +144,7 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
     study = optuna.create_study(direction='minimize', study_name=study_name)
     study.optimize(lambda trial: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
-    logger.info("Hyperparameter optimization completed")
+    logger.info("Hyperparameters optimization completed")
     logger.info("Best trial:")
     trial = study.best_trial
     logger.info(f"  Value: {trial.value:.4f}")

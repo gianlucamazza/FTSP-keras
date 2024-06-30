@@ -168,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--ticker', type=str, required=True, help='Ticker symbol')
 
     args = parser.parse_args()
-    params_path = Path(f'{args.ticker}_best_params.json')
+    params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
     params = load_best_params(params_path)
 
     if not params:
