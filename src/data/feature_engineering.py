@@ -12,7 +12,7 @@ from statsmodels.tsa.stattools import adfuller
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from .technical_indicators import calculate_technical_indicators
+from technical_indicators import calculate_technical_indicators
 from src.config import COLUMN_SETS, CLOSE
 from src.logging.logger import setup_logger
 
