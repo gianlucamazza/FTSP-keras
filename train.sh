@@ -18,7 +18,7 @@ bash cleanup.sh || { echo "Cleanup failed"; exit 1; }
 # Loop through each ticker
 for ENTRY in "${TICKER_DATES[@]}"; do
   IFS=',' read -r TICKER START_DATE NAME FREQ <<< "$ENTRY"
-  echo "Processing NAME"
+  echo "Processing $NAME"
 
   # Prepare the data
   python src/data/data_preparation.py --yfinance_ticker="$TICKER" --ticker="$NAME" --start_date="$START_DATE" || { echo "Data preparation failed for $TICKER"; exit 1; }
