@@ -9,12 +9,12 @@ import featuretools as ft
 from statsmodels.tsa.stattools import adfuller
 from technical_indicators import calculate_technical_indicators
 
-from src.config import COLUMN_SETS, CLOSE
-from src.logging.logger import setup_logger
-
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
+
+from src.config import COLUMN_SETS, CLOSE
+from src.logging.logger import setup_logger
 
 # Setup logger
 ROOT_DIR = project_dir
