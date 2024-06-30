@@ -91,7 +91,7 @@ def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
     raw_data_path = f'raw_data_{label}.csv'
     processed_data_path = f'processed_data_{label}.csv'
     try:
-        df = get_financial_data(ticker, file_path=raw_data_path, start_date=start_date, end_date=end_date)
+        df = get_financial_data(ticker, label, file_path=raw_data_path, start_date=start_date, end_date=end_date)
         logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
         save_df_to_csv(df, processed_data_path)
         logger.info(f'Finished data preparation for {label}.')
@@ -109,4 +109,4 @@ if __name__ == '__main__':
     parser.add_argument('--end_date', type=str, help='End date')
 
     args = parser.parse_args()
-    main(ticker=args.ticker, label=args.label, start_date=args.start_date, end_date=args.end_date)
+    main(ticker=args.yfinance_ticker, label=args.ticker, start_date=args.start_date, end_date=args.end_date)
