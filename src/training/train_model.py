@@ -26,7 +26,7 @@ logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
-                ticker: str, fold_index: int, params: Dict, trial_id: int) -> Tuple[Model, dict]:
+                ticker: str, fold_index: int, params: Dict, trial_id: int) -> Tuple[Model, dict, float]:
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
@@ -41,6 +41,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         l2_reg=params.get('l2_reg', 1e-5),
         optimizer='adam'
     )
+    logger.debug(f"Model architecture: {model.summary()}")
 
     model.compile(
         optimizer='adam',
@@ -48,8 +49,9 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         metrics=['mean_squared_error']
     )
 
-    model_dir_path = Path(model_dir)
+    model_dir_path = ROOT_DIR / model_dir
     model_dir_path.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Model directory: {model_dir_path}")
 
     callbacks = prepare_callbacks(model_dir=model_dir_path, ticker=ticker, monitor='val_loss', epoch=0)
 
@@ -66,14 +68,16 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         logger.error(f"Error during training: {e}", exc_info=True)
         raise
 
-    logger.info(f"Training completed for fold {fold_index} in trial {trial_id}.")
-    model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
+    val_loss = min(history.history['val_loss'])
+
+    logger.info(f"Training completed for fold {fold_index} in trial {trial_id}. Validation loss: {val_loss:.4f}")
+    model_path = ROOT_DIR / "models" / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 
     end_time = time.time()
     logger.info(f"Training for fold {fold_index} in trial {trial_id} completed in {end_time - start_time:.2f} seconds.")
-    return model, history
+    return model, history, val_loss
 
 
 class ModelTrainer:
@@ -82,7 +86,7 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker: str = 'BTC', params: Optional[Dict] = None):
+    def __init__(self, ticker: str, params: Optional[Dict] = None):
         self.ticker = ticker
         self.parameters = params
         self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
@@ -96,12 +100,15 @@ class ModelTrainer:
         self.df = self.load_dataset()
         self.df = prepare_data(self.df, self.feature_scaler)
         self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
+        logger.info("ModelTrainer initialized successfully.")
 
     def load_scaler(self) -> object:
         """Load the feature scaler from disk."""
         logger.info(f"Loading scaler from {self.scaler_path}")
         try:
-            return joblib.load(self.scaler_path)
+            scaler = joblib.load(self.scaler_path)
+            logger.info("Scaler loaded successfully.")
+            return scaler
         except FileNotFoundError as e:
             logger.error(f"Scaler file not found: {e}")
             raise
@@ -117,6 +124,7 @@ class ModelTrainer:
             df.ffill(inplace=True)
             if self.COLUMN_TO_PREDICT not in df.columns:
                 raise ValueError(f"Column {self.COLUMN_TO_PREDICT} not found in dataset.")
+            logger.info("Dataset loaded successfully.")
             return df
         except FileNotFoundError as e:
             logger.error(f"Dataset file not found: {e}")
@@ -128,12 +136,14 @@ class ModelTrainer:
     @staticmethod
     def create_windowed_data(df: pd.DataFrame, steps: int, target_column: str) -> Tuple[np.ndarray, np.ndarray]:
         """Create windowed data for LSTM."""
+        logger.info("Creating windowed data for LSTM.")
         x, y = [], []
         target_index = df.columns.get_loc(target_column)
         data = df.values
         for i in range(steps, len(data)):
             x.append(data[i - steps:i])
             y.append(data[i, target_index])
+        logger.info("Windowed data creation complete.")
         return np.array(x), np.array(y)
 
 
@@ -151,13 +161,30 @@ def main(ticker: str, parameters: Dict) -> None:
     logger.debug(f"x_val shape: {x_val.shape}, y_val shape: {y_val.shape}")
 
     model_dir = ModelTrainer.MODELS_FOLDER
-    model, history = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, 0, params, 0)
 
-    if hasattr(history, 'history'):
-        logger.info(f"Final training loss: {history.history['loss'][-1]}")
-        logger.info(f"Final validation loss: {history.history['val_loss'][-1]}")
+    best_val_loss = float('inf')
+    best_model = None
+    best_history = None
+
+    n_folds = parameters.get("n_folds", 5)
+    for fold_index in range(n_folds):
+        logger.info(f"Preparing fold {fold_index + 1} of {n_folds}")
+        model, history, val_loss = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, fold_index, parameters, 0)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_model = model
+            best_history = history
+
+    if best_history is not None and hasattr(best_history, 'history'):
+        logger.info(f"Final training loss: {best_history.history['loss'][-1]}")
+        logger.info(f"Final validation loss: {best_history.history['val_loss'][-1]}")
     else:
         logger.error("Training did not return a valid History object.")
+
+    if best_model is not None:
+        best_model_path = ROOT_DIR / "models" / f"{ticker}_best_model.keras"
+        best_model.save(best_model_path)
+        logger.info(f"Best model saved at {best_model_path}")
 
     logger.info(f"Model training for ticker {ticker} completed.")
 
@@ -171,9 +198,11 @@ if __name__ == '__main__':
     params = load_best_params(params_path)
 
     if not params:
-        logger.error(f"Parameters file not found: {params_path}")
-        logger.info('Starting hyper parameters optimization...')
+        logger.info(f"Parameters file not found: {params_path}")
+        logger.info('Starting hyperparameters optimization...')
         params = optimize_hyperparameters(ticker=args.ticker)
 
+    logger.info('Found best params')
+    logger.info("Starting Training")
+    logger.info(params)
     main(ticker=args.ticker, parameters=params)
-

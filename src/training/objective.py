@@ -1,11 +1,9 @@
 from pathlib import Path
 import numpy as np
 import optuna
-import json
 import sys
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import mean_squared_error
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from typing import Dict
@@ -16,7 +14,6 @@ from src.training.train_utils import save_best_params
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
-
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -39,15 +36,6 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 METRIC_MSE = 'mse'
 
 
-def load_best_params(ticker, path):
-    try:
-        with open(path, 'r') as file:
-            data = json.load(file)
-            return data.get(ticker)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
-
-
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 300),
@@ -68,7 +56,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
 
     try:
         from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
-        trainer = ModelTrainer(ticker=ticker, params=parameters)
+        trainer = ModelTrainer(ticker=ticker, p=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
         raise
@@ -87,7 +75,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
         y_train, y_val = y[train_index], y[val_index]
 
         try:
-            model, history = train_model(
+            model, history, val_loss = train_model(
                 x_train, y_train, x_val, y_val,
                 model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER / trainer.ticker),
                 ticker=trainer.ticker,
@@ -99,12 +87,10 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
             logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)
             continue
 
-        y_pred = model.predict(x_val)
-        mse = mean_squared_error(y_val, y_pred)
-        scores.append(mse)
+        scores.append(val_loss)
         last_step = i
 
-        logger.info(f"Completed fold {i} for trial {trial_id} with MSE: {mse}")
+        logger.info(f"Completed fold {i} for trial {trial_id} with MSE: {val_loss}")
 
     if scores:
         average_score = np.mean(scores)
@@ -142,9 +128,9 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     study_name = f'{ticker}_study'  # Adding a study name
     study = optuna.create_study(direction='minimize', study_name=study_name)
-    study.optimize(lambda trial: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
-    logger.info("Hyperparameters optimization completed")
+    logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
     trial = study.best_trial
     logger.info(f"  Value: {trial.value:.4f}")
