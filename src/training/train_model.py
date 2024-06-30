@@ -53,7 +53,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
     model_dir_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Model directory: {model_dir_path}")
 
-    callbacks = prepare_callbacks(model_dir=model_dir_path, ticker=ticker, monitor='val_loss', epoch=0)
+    callbacks = prepare_callbacks(model_dir=model_dir_path, ticker=ticker, monitor='val_loss', fold_index=fold_index)
 
     try:
         history = model.fit(
