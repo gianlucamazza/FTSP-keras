@@ -82,9 +82,9 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker: str = 'BTC', params: Optional[Dict] = None):
+    def __init__(self, ticker: str = 'BTC', p: Optional[Dict] = None):
         self.ticker = ticker
-        self.parameters = params
+        self.parameters = p
         self.data_path = f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
         self.scaler_path = f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
 

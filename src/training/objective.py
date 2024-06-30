@@ -67,10 +67,10 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
 
     try:
         from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
-        trainer = ModelTrainer(ticker=ticker, params=parameters)
+        trainer = ModelTrainer(ticker=ticker, p=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
-        raise
+        return float('inf')
 
     x, y = trainer.x, trainer.y
     tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
@@ -96,7 +96,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
             )
         except Exception as e:
             logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)
-            continue
+            return float('inf')
 
         y_pred = model.predict(x_val)
         mse = mean_squared_error(y_val, y_pred)
@@ -141,7 +141,7 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     study_name = f'{ticker}_study'  # Adding a study name
     study = optuna.create_study(direction='minimize', study_name=study_name)
-    study.optimize(lambda trial: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
