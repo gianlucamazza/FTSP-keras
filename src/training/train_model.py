@@ -8,6 +8,10 @@ import pandas as pd
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(project_dir))
+
 from src.config import COLUMN_SETS
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
@@ -15,11 +19,6 @@ from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.training.train_utils import load_best_params
 from src.training.objective import optimize_hyperparameters
-
-# Ensure the project directory is in the sys.path
-project_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_dir))
-
 
 # Setup logger
 ROOT_DIR = project_dir
