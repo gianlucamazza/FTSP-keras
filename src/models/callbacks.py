@@ -9,7 +9,6 @@ from src.logging.logger import setup_logger
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-
 ROOT_DIR = project_dir
 logger = setup_logger('callback_logger', 'logs', 'callback_logger.log')
 
