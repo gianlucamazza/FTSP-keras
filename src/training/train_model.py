@@ -1,7 +1,6 @@
 import sys
 import time
 import argparse
-import json
 from pathlib import Path
 import joblib
 import numpy as np
@@ -166,7 +165,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     params_path = Path(f'{args.ticker}_best_params.json')
-    params = load_best_params(args.ticker, params_path)
+    params = load_best_params(params_path)
 
     if params is None:
         logger.error(f"Parameters file not found: {params_path}")
