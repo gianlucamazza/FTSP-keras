@@ -168,8 +168,10 @@ def main(ticker: str, parameters: Dict) -> None:
 
     n_folds = parameters.get("n_folds", 5)
     for fold_index in range(n_folds):
-        logger.info(f"Preparing fold {fold_index + 1} of {n_folds}")
-        model, history, val_loss = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, fold_index, parameters, 0)
+        trial_id = fold_index + 1
+        logger.info(f"Preparing fold {fold_index + 1} of {n_folds}, trial {trial_id}")
+        model, history, val_loss = train_model(x_train, y_train, x_val, y_val, str(model_dir),
+                                               ticker, fold_index, parameters, trial_id)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_model = model
