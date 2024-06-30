@@ -68,7 +68,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         raise
 
     logger.info(f"Training completed for fold {fold_index} in trial {trial_id}.")
-    model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.h5"  # Use .h5 extension
+    model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 
