@@ -8,11 +8,6 @@ import pandas as pd
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
-
-# Ensure the project directory is in the sys.path
-project_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_dir))
-
 from src.config import COLUMN_SETS
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
@@ -21,7 +16,13 @@ from src.models.callbacks import prepare_callbacks
 from src.training.train_utils import load_best_params
 from src.training.objective import optimize_hyperparameters
 
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(project_dir))
+
+
 # Setup logger
+ROOT_DIR = project_dir
 logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
@@ -85,8 +86,8 @@ class ModelTrainer:
     def __init__(self, ticker: str = 'BTC', params: Optional[Dict] = None):
         self.ticker = ticker
         self.parameters = params
-        self.data_path = f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
-        self.scaler_path = f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
+        self.scaler_path = ROOT_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
 
         logger.info(f"Initializing ModelTrainer for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
@@ -153,10 +154,13 @@ def main(ticker: str, parameters: Dict) -> None:
     model_dir = ModelTrainer.MODELS_FOLDER
     model, history = train_model(x_train, y_train, x_val, y_val, str(model_dir), ticker, 0, params, 0)
 
-    # Utilize model and history if needed
+    if hasattr(history, 'history'):
+        logger.info(f"Final training loss: {history.history['loss'][-1]}")
+        logger.info(f"Final validation loss: {history.history['val_loss'][-1]}")
+    else:
+        logger.error("Training did not return a valid History object.")
+
     logger.info(f"Model training for ticker {ticker} completed.")
-    logger.info(f"Final training loss: {history.history['loss'][-1]}")
-    logger.info(f"Final validation loss: {history.history['val_loss'][-1]}")
 
 
 if __name__ == '__main__':
@@ -169,7 +173,7 @@ if __name__ == '__main__':
 
     if not params:
         logger.error(f"Parameters file not found: {params_path}")
-        logger.info("Starting hyperparameter optimization...")
+        logger.info('Starting hyper parameters optimization...')
         params = optimize_hyperparameters(ticker=args.ticker)
 
     main(ticker=args.ticker, parameters=params)
