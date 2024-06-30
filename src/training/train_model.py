@@ -17,7 +17,7 @@ from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
-from src.training.train_utils import load_best_params
+from utils import load_from_json
 from src.training.objective import optimize_hyperparameters
 
 # Setup logger
@@ -197,7 +197,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
-    params = load_best_params(params_path)
+    params = load_from_json(params_path)
 
     if not params:
         logger.info(f"Parameters file not found: {params_path}")

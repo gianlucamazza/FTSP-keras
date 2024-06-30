@@ -14,7 +14,7 @@ from src.logging.logger import setup_logger
 from src.config import COLUMN_SETS, CLOSE
 from src.indicators.technical_indicators import calculate_technical_indicators
 from src.data.feature_engineering import process_and_save_features
-from src.training.train_utils import load_best_params
+from utils import load_from_json
 
 ROOT_DIR = project_dir
 logger = setup_logger('predict_logger', 'logs', 'predict.log')
@@ -56,7 +56,7 @@ class ModelPredictor:
         self.model = load_model(self.model_path)
         self.df = self.load_dataset()
 
-        self.best_params = load_best_params(self.params_path)
+        self.best_params = load_from_json(self.params_path)
         self.prediction_steps = self.best_params.get('train_steps', 30)
         logger.info(f"Using train_steps: {self.prediction_steps}")
 

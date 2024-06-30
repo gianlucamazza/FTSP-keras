@@ -62,9 +62,3 @@ COLUMN_SETS = {
 # Model Parameters
 # ----------------
 TRAIN_VALIDATION_SPLIT = 0.8
-
-# ARIMA Parameters
-# ----------------
-# Parameters for ARIMA model configuration
-ARIMA_ORDER = (2, 1, 3)  # p, d, q parameters
-ARIMA_SEASONAL_ORDER = (1, 0, 1, 12)  # P, D, Q, S parameters

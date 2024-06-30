@@ -9,7 +9,7 @@ from tensorboard.plugins.hparams import api as hp
 from typing import Dict
 
 from src.logging.logger import setup_logger
-from src.training.train_utils import save_best_params
+from utils import save_to_json
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -139,7 +139,7 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    save_best_params(trial.params, best_params_path, ticker)
+    save_to_json(trial.params, best_params_path, ticker)
     logger.info(f"Best parameters saved at {best_params_path}")
 
     return trial.params

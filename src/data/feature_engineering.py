@@ -6,12 +6,13 @@ import pmdarima as pm
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 import joblib
 from statsmodels.tsa.stattools import adfuller
+from utils import load_from_json, save_to_json, update_json
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.config import COLUMN_SETS, CLOSE, ARIMA_ORDER, ARIMA_SEASONAL_ORDER
+from src.config import COLUMN_SETS, CLOSE
 from src.logging.logger import setup_logger
 
 # Setup logger
@@ -60,13 +61,17 @@ def save_scaler(scaler, ticker: str) -> None:
     logger.info(f"Feature scaler saved at {path}")
 
 
-def optimize_arima(y: pd.Series) -> pm.arima.ARIMA:
-    """Optimize ARIMA model using specified parameters."""
-    y = y.astype(float)
-
-    # Ensure the frequency is set
+def ensure_frequency(y: pd.Series, freq: str) -> pd.Series:
+    """Ensure the series has a defined frequency."""
     if y.index.freq is None:
-        y = y.asfreq('B')  # Assume business days if not set
+        y = y.asfreq(freq)
+    return y
+
+
+def optimize_arima(y: pd.Series, freq: str) -> dict:
+    """Optimize ARIMA model using specified parameters."""
+    y = ensure_frequency(y, freq)
+    y = y.astype(float)
 
     result = adfuller(y)
     if isinstance(result, tuple) and len(result) > 1:
@@ -76,14 +81,17 @@ def optimize_arima(y: pd.Series) -> pm.arima.ARIMA:
     else:
         logger.error("Unexpected result from adfuller: Expected tuple, got {}".format(type(result)))
 
-    # Fit the ARIMA model with specified parameters and additional settings
-    model = pm.ARIMA(order=ARIMA_ORDER, seasonal_order=ARIMA_SEASONAL_ORDER, enforce_stationarity=False, enforce_invertibility=False, maxiter=200)
-    model.fit(y)
-    logger.info(f"Optimal parameters: {model.order}, seasonal_order: {model.seasonal_order}")
-    return model
+    model = pm.auto_arima(y, seasonal=True, m=12, trace=True, error_action='ignore', suppress_warnings=True)
+    best_params = {
+        "arima_order": model.order,
+        "arima_seasonal_order": model.seasonal_order,
+        "frequency": freq
+    }
+    logger.info(f"Optimal parameters: {best_params}")
+    return best_params
 
 
-def process_and_save_features(df: pd.DataFrame, ticker: str, scaler_type: str) -> None:
+def process_and_save_features(df: pd.DataFrame, ticker: str, freq: str, scaler_type: str) -> None:
     """Process features by normalizing and saving the data and scaler."""
     try:
         logger.info(f"Processing features for {ticker}.")
@@ -96,10 +104,7 @@ def process_and_save_features(df: pd.DataFrame, ticker: str, scaler_type: str) -
         df.index = pd.to_datetime(df.index)
 
         # Set the frequency based on the ticker
-        if ticker == "BTC-USD":
-            df = df.asfreq('D')
-        else:
-            df = df.asfreq('B')
+        df = df.asfreq(freq)
 
         # Log the inferred frequency
         logger.info(f"Data frequency set to: {df.index.freq}")
@@ -116,7 +121,27 @@ def process_and_save_features(df: pd.DataFrame, ticker: str, scaler_type: str) -
         feature_matrix.to_csv(scaled_data_path, index=True)
         logger.info(f"Scaled data saved at {scaled_data_path}")
 
-        optimized_model = optimize_arima(feature_matrix[CLOSE])
+        # Load ARIMA parameters from JSON file or find and save the best ones
+        params_path = ROOT_DIR / f'{ticker}_arima_params.json'
+        if params_path.exists():
+            best_params = load_from_json(params_path)
+            arima_order = tuple(best_params["arima_order"])
+            arima_seasonal_order = tuple(best_params["arima_seasonal_order"])
+            freq = best_params["frequency"]
+        else:
+            best_params = optimize_arima(feature_matrix[CLOSE], freq)
+            save_to_json(best_params, params_path)
+            arima_order = best_params["arima_order"]
+            arima_seasonal_order = best_params["arima_seasonal_order"]
+
+        optimized_model = pm.ARIMA(order=arima_order, seasonal_order=arima_seasonal_order, enforce_stationarity=False,
+                                   enforce_invertibility=False, maxiter=200)
+        feature_matrix[CLOSE] = ensure_frequency(feature_matrix[CLOSE], freq)
+
+        if feature_matrix.index.freq is None:
+            feature_matrix = feature_matrix.asfreq('B')  # FIXME: to be parametrized
+
+        optimized_model.fit(feature_matrix[CLOSE])
         logger.info(f"Best ARIMA model: {optimized_model.order}, seasonal_order: {optimized_model.seasonal_order}")
 
     except Exception as e:
@@ -124,7 +149,7 @@ def process_and_save_features(df: pd.DataFrame, ticker: str, scaler_type: str) -
         raise
 
 
-def main(ticker: str, scaler_type: str, worker=None) -> None:
+def main(ticker: str, frequency: str,scaler_type: str, worker=None) -> None:
     """Main function to start feature engineering process for a given ticker."""
     logger.info(f"Starting feature engineering for {ticker}.")
     file_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
@@ -135,7 +160,7 @@ def main(ticker: str, scaler_type: str, worker=None) -> None:
         df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
         logger.info(f"Data loaded. Shape: {df.shape}")
         logger.info(f"Index: {df.index.name}")
-        process_and_save_features(df, ticker, scaler_type)
+        process_and_save_features(df, ticker, frequency, scaler_type)
         logger.info(f"Feature engineering completed for {ticker}.")
     except Exception as e:
         logger.error(f"Failed to complete feature engineering for {ticker}: {e}")
@@ -147,7 +172,8 @@ def main(ticker: str, scaler_type: str, worker=None) -> None:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Feature Engineering')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker')
+    parser.add_argument('--freq', type=str, required=True, help='Frequency: D or B')
     parser.add_argument('--scaler', type=str, default='RobustScaler', choices=['MinMaxScaler', 'RobustScaler'],
                         help='Scaler type')
     args = parser.parse_args()
-    main(ticker=args.ticker, scaler_type=args.scaler)
+    main(ticker=args.ticker, frequency=args.freq, scaler_type=args.scaler)
