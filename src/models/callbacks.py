@@ -13,7 +13,7 @@ ROOT_DIR = project_dir
 logger = setup_logger('callback_logger', 'logs', 'callback_logger.log')
 
 
-def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', epoch: int = 0):
+def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', epoch: int = 0, fold_index: int = 0, trial_id: int = 0):
     """
     Prepare callbacks for training the model.
 
@@ -22,6 +22,8 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', e
     - ticker: Ticker symbol for logging and file naming.
     - monitor: Metric to monitor for early stopping and checkpoints.
     - epoch: Starting epoch for file naming.
+    - fold_index: Index of the fold for cross-validation.
+    - trial_id: Identifier for the current trial in hyperparameter tuning.
 
     Returns:
     - List of configured callbacks.
@@ -30,12 +32,14 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', e
     logger.info(f"  - Model directory: {model_dir}")
     logger.info(f"  - Monitor metric: {monitor}")
     logger.info(f"  - Start epoch: {epoch}")
+    logger.info(f"  - Fold index: {fold_index}")
+    logger.info(f"  - Trial ID: {trial_id}")
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     log_dir = ROOT_DIR / 'logs' / ticker / timestamp
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    filepath = model_dir / ticker / f'model-{epoch:02d}-{monitor}.keras'
+    filepath = model_dir / f"{ticker}_trial_{trial_id}_fold_{fold_index}_epoch_{epoch:02d}-{monitor}.keras"
 
     callbacks = [
         EarlyStopping(monitor=monitor, patience=10, verbose=1, restore_best_weights=True),
