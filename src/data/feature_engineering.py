@@ -9,12 +9,12 @@ import featuretools as ft
 from statsmodels.tsa.stattools import adfuller
 from technical_indicators import calculate_technical_indicators
 
+from src.config import COLUMN_SETS, CLOSE
+from src.logging.logger import setup_logger
+
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
-
-from src.config import COLUMN_SETS, CLOSE
-from src.logging.logger import setup_logger
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -58,7 +58,7 @@ pd.DataFrame, object):
 
 def save_scaler(scaler, ticker: str) -> None:
     """Save the scaler object to disk."""
-    path = f'scalers/feature_scaler_{ticker}.pkl'
+    path = ROOT_DIR / f'scalers/feature_scaler_{ticker}.pkl'
     joblib.dump(scaler, path)
     logger.info(f"Feature scaler saved at {path}")
 
@@ -67,8 +67,12 @@ def optimize_arima(y: pd.Series) -> pm.arima.ARIMA:
     """Optimize ARIMA model using pmdarima's auto_arima."""
     y = y.astype(float)
     result = adfuller(y)
-    if result[1] > 0.05:
-        logger.info("Data is not stationary. Differencing might be required.")
+    if isinstance(result, tuple) and len(result) > 1:
+        p_value = result[1]
+        if p_value > 0.05:
+            logger.info("Data is not stationary. Differencing might be required.")
+    else:
+        logger.error("Unexpected result from adfuller: Expected tuple, got {}".format(type(result)))
 
     model = pm.auto_arima(y, seasonal=True, m=12, stepwise=True, trace=True,
                           error_action='ignore', suppress_warnings=True)

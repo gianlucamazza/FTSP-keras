@@ -19,7 +19,6 @@ setup(
         'scikit-learn',
         'statsmodels',
         'tensorflow',
-        'tensorrt',
         'yfinance',
         'tensorflow-metadata',
     ],

@@ -18,10 +18,28 @@ Processed data files:
 
 ```bash
 # Prepare the data
-python3 src/data/data_preparation.py --ticker {TICKER} --start_date=YYYY-MM-DD
+python src/data/data_preparation.py --ticker {TICKER} --start_date=YYYY-MM-DD
 
 # Setup the feature engineering
-python3 src/feature_engineering.py --ticker {TICKER} --scaler RobustScaler
+python src/feature_engineering.py --ticker {TICKER} --scaler RobustScaler
 
 # Train the model
-python3 src/training/train_model.py --ticker {TICKER} --params best_params.json 
+python src/training/train_model.py --ticker {TICKER} --params best_params.json 
+```
+
+## Predict
+```bash
+python src/predictions/predict.py
+```
+
+## Install
+```bash
+pip install .
+```
+
+## Contributors
+- Gianluca Mazza
+- Matteo Garbelli
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.

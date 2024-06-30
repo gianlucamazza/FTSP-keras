@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
 
+from src.config import COLUMN_SETS
+from src.logging.logger import setup_logger
+
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
-
-from src.config import COLUMN_SETS
-from src.logging.logger import setup_logger
 
 # Setup logger
 ROOT_DIR = project_dir
