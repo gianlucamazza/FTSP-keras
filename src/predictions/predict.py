@@ -6,8 +6,7 @@ from pathlib import Path
 from keras.models import load_model
 import matplotlib.pyplot as plt
 
-# Add the project directory to the sys.path
-project_dir = Path(__file__).resolve().parent
+project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
@@ -16,7 +15,7 @@ from src.data.technical_indicators import calculate_technical_indicators
 from src.data.feature_engineering import process_and_save_features
 from src.training.train_utils import load_best_params
 
-BASE_DIR = Path(__file__).parent.parent
+ROOT_DIR = project_dir
 logger = setup_logger('predict_logger', 'logs', 'predict.log')
 
 
@@ -41,10 +40,10 @@ class ModelPredictor:
 
     def __init__(self, ticker='BTC'):
         self.ticker = ticker
-        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
-        self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
-        self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
-        self.params_path = BASE_DIR / 'best_params.json'
+        self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
+        self.scaler_path = ROOT_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.model_path = ROOT_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
+        self.params_path = ROOT_DIR / f'{self.ticker}_best_params.json'
 
         logger.info(f"Initializing ModelPredictor for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
@@ -189,7 +188,7 @@ class ModelPredictor:
         plt.tight_layout()
 
         # Save plot
-        plot_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_prediction_plot.png'
+        plot_path = ROOT_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_prediction_plot.png'
         plt.savefig(plot_path, dpi=300)
         logger.info(f"Prediction plot saved at {plot_path}")
 
@@ -201,7 +200,7 @@ class ModelPredictor:
             predictions_scaled = self.predict()
             predictions = self.inverse_transform_predictions(predictions_scaled)
             self.plot_predictions(predictions)
-            predictions_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
+            predictions_path = ROOT_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
             self.save_predictions(predictions, predictions_path)
         except Exception as e:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
@@ -210,9 +209,9 @@ class ModelPredictor:
 def main(ticker='BTC'):
     """Main function to run the prediction script."""
     # Process and save features before running the prediction
-    processed_data_path = BASE_DIR / f'data/processed_data_{ticker}.csv'
+    processed_data_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
     if not processed_data_path.exists():
-        raw_data_path = BASE_DIR / f'data/raw_data_{ticker}.csv'
+        raw_data_path = ROOT_DIR / f'data/raw_data_{ticker}.csv'
         if raw_data_path.exists():
             df_raw = pd.read_csv(raw_data_path, index_col='Date', parse_dates=True)
             process_and_save_features(df_raw, ticker)
