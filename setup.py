@@ -13,6 +13,7 @@ setup(
         'numpy',
         'pmdarima',
         'optuna',
+        'optuna_integration',
         'pandas',
         'PyQt5',
         'scikit-learn',

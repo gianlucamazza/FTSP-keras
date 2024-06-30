@@ -18,6 +18,7 @@ from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
+from src.training.objective import optimize_hyperparameters
 
 # Setup logger
 logger = setup_logger('train_model', 'logs', 'train_model.log')
@@ -166,9 +167,7 @@ if __name__ == '__main__':
     params_path = Path(args.params)
     if not params_path.exists():
         logger.error(f"Parameters file not found: {params_path}")
-        sys.exit(1)
+        logger.info("Starting hyperparameter optimization...")
+        optimize_hyperparameters(ticker=args.ticker)
 
-    with open(params_path, 'r') as file:
-        parameters = json.load(file)
-
-    main(ticker=args.ticker, params=parameters)
+    main(ticker=args.ticker, params=args.params)

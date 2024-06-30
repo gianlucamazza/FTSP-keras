@@ -31,5 +31,5 @@ for TICKER in "${!TICKER_DATES[@]}"; do
   python src/data/feature_engineering.py --ticker="$TICKER"
 
   # Train the model
-  python src/training/train.py --ticker="$TICKER" --best_params="$PARAMS"
+  python src/training/train_model.py --ticker="$TICKER" --params="$PARAMS"
 done
