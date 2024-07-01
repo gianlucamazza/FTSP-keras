@@ -8,10 +8,12 @@ import pandas as pd
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
+
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
+from training.objective import optimize_hyperparameters
 from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
@@ -191,12 +193,19 @@ def main(ticker: str, parameters: Dict) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train Model')
+    parser = argparse.ArgumentParser(description='Train LSTM model for financial prediction')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker')
 
     args = parser.parse_args()
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
     params = load_from_json(params_path)
 
+    if not params:
+        logger.info(f"Parameters file not found: {params_path}")
+        logger.info('Starting hyperparameters optimization...')
+        params = optimize_hyperparameters(ticker=args.ticker)
+
+    logger.info('Found best params')
+    logger.info("Starting Training")
     logger.info(params)
     main(ticker=args.ticker, parameters=params)
