@@ -10,7 +10,8 @@ sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
 
-ROOT_DIR = Path(__file__).parent.parent
+ROOT_DIR = Path(__file__).parent.parent.parent
+PLOTS_DIR = ROOT_DIR / 'plots'
 logger = setup_logger('eda', 'logs', 'eda.log')
 
 
@@ -56,8 +57,8 @@ def correlation_analysis(df, target_col):
     return target_correlation
 
 
-def plot_distributions(df, cols):
-    """Plot distributions of the specified columns."""
+def plot_distributions(df, cols, ticker, save_dir):
+    """Plot distributions of the specified columns and save them to the specified directory."""
     logger.info("Plotting distributions of columns.")
     for col in cols:
         if col != 'Date':
@@ -65,11 +66,14 @@ def plot_distributions(df, cols):
             plt.figure(figsize=(10, 6))
             sns.histplot(df[col].dropna(), kde=True)
             plt.title(f'Distribution of {col}')
-            plt.show()
+            plot_path = save_dir / f'{ticker}_distribution_{col}.png'
+            plt.savefig(plot_path)
+            logger.info(f"Plot saved to {plot_path}")
+            plt.close()
     logger.info("Distribution plots completed.")
 
 
-def eda_pipeline(file_path, target_col):
+def eda_pipeline(file_path, ticker, target_col):
     """Complete pipeline for EDA."""
     logger.info("Starting EDA pipeline.")
     try:
@@ -77,7 +81,7 @@ def eda_pipeline(file_path, target_col):
         missing_values = missing_values_analysis(df)
         low_variance_cols = variance_analysis(df)
         target_correlation = correlation_analysis(df, target_col)
-        plot_distributions(df, [col for col in df.columns if col != 'Date'])
+        plot_distributions(df, [col for col in df.columns if col != 'Date'], ticker, PLOTS_DIR)
         logger.info("EDA pipeline completed successfully.")
         return df, missing_values, low_variance_cols, target_correlation
     except Exception as e:

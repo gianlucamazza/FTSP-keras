@@ -1,8 +1,6 @@
 import argparse
 import sys
 from pathlib import Path
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
 
@@ -68,23 +66,6 @@ def get_financial_data(ticker: str, name: str, file_path=None, start_date=None, 
         raise
 
 
-def plot_price_history(dates, prices, ticker):
-    """Plot the price history for a given ticker."""
-    logger.info(f"Plotting price history for {ticker}.")
-    plt.figure(figsize=(15, 10))
-    plt.plot(dates, prices, label='Close Price')
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-    plt.gcf().autofmt_xdate()
-    plt.title(f'{ticker} Price History')
-    plt.ylabel('Price (USD)')
-    plt.xlabel('Date')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
-
-
 def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {label}.")
@@ -96,7 +77,7 @@ def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
 
         # Perform EDA
         logger.info("Performing Exploratory Data Analysis (EDA).")
-        _, missing_values, low_variance_cols, target_correlation = eda_pipeline(raw_data_path, 'Close')
+        _, missing_values, low_variance_cols, target_correlation = eda_pipeline(raw_data_path, ticker,'Close')
 
         # Log the EDA results
         logger.info(f"Percentage of missing values:\n{missing_values}")
