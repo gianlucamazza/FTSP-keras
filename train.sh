@@ -21,14 +21,14 @@ for ENTRY in "${TICKER_DATES[@]}"; do
   echo "Processing $NAME"
 
   # Prepare the data
-  python src/data/data_preparation.py --yfinance_ticker="$TICKER" --ticker="$NAME" --start_date="$START_DATE" || { echo "Data preparation failed for $TICKER"; exit 1; }
+  python src/data/data_preparation.py --yfinance_ticker="$TICKER" --ticker="$NAME" --start_date="$START_DATE" || { echo "Data preparation failed for $NAME"; exit 1; }
 
   # Calculate indicators
-  python src/data/calculate_indicators.py --ticker="$NAME" || { echo "Indicator calculation failed for $TICKER"; exit 1; }
+  python src/data/calculate_indicators.py --ticker="$NAME" || { echo "Indicator calculation failed for $NAME"; exit 1; }
 
   # Setup feature engineering
-  python src/data/feature_engineering.py --ticker="$NAME" --freq="$FREQ" || { echo "Feature engineering failed for $TICKER"; exit 1; }
+  python src/data/feature_engineering.py --ticker="$NAME" --freq="$FREQ" || { echo "Feature engineering failed for $NAME"; exit 1; }
 
   # Train the model
-  python src/training/train_model.py --ticker="$NAME" || { echo "Model training failed for $TICKER"; exit 1; }
+  python src/training/train_model.py --ticker="$NAME" || { echo "Model training failed for $NAME"; exit 1; }
 done
