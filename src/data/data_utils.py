@@ -3,12 +3,12 @@ from pathlib import Path
 
 from src.config import COLUMN_SETS
 from src.logging.logger import setup_logger
-from indicators.technical_indicators import calculate_technical_indicators
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
+from src.indicators.technical_indicators import calculate_technical_indicators
 
 ROOT_DIR = Path(__file__).parent.parent
 logger = setup_logger('data_utils_logger', 'logs', 'data_utils_logger.log')
