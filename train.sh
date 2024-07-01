@@ -26,8 +26,14 @@ for ENTRY in "${TICKER_DATES[@]}"; do
   # Calculate indicators
   python src/data/calculate_indicators.py --ticker="$NAME" || { echo "Indicator calculation failed for $NAME"; exit 1; }
 
+  # Find the optimal number of features
+  python src/data/find_optimal_features.py --ticker="$NAME" || { echo "Finding optimal features failed for $NAME"; exit 1; }
+
+  # Read the optimal number of features
+  OPTIMAL_FEATURES=$(cat "data/optimal_features_${NAME}.txt")
+
   # Setup feature engineering
-  python src/data/feature_engineering.py --ticker="$NAME" --freq="$FREQ" || { echo "Feature engineering failed for $NAME"; exit 1; }
+  python src/data/feature_engineering.py --ticker="$NAME" --freq="$FREQ" --num_features="$OPTIMAL_FEATURES" || { echo "Feature engineering failed for $NAME"; exit 1; }
 
   # Train the model
   python src/training/objective.py --ticker="$NAME" || { echo "Objective failed for $NAME"; exit 1; }

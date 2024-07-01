@@ -48,11 +48,10 @@ def arrange_and_fill(df, name):
     return df
 
 
-def save_df_to_csv(df, relative_path):
+def save_df_to_csv(df, file_path):
     """Save DataFrame to a CSV file."""
-    file_path = ROOT_DIR / 'data' / relative_path
+    file_path = f'{file_path}'
     logger.info(f"Saving DataFrame to {file_path}.")
-    file_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(file_path, index=True)
 
 
@@ -89,8 +88,8 @@ def plot_price_history(dates, prices, ticker):
 def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {label}.")
-    raw_data_path = ROOT_DIR / f'raw_data_{label}.csv'
-    processed_data_path = f'processed_data_{label}.csv'
+    raw_data_path = ROOT_DIR / "data" / f'raw_data_{label}.csv'
+    processed_data_path = ROOT_DIR / "data" / f'processed_data_{label}.csv'
     try:
         df = get_financial_data(ticker, label, file_path=raw_data_path, start_date=start_date, end_date=end_date)
         logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")

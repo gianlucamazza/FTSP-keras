@@ -13,6 +13,7 @@ from src.logging.logger import setup_logger
 ROOT_DIR = Path(__file__).parent.parent
 logger = setup_logger('eda', 'logs', 'eda.log')
 
+
 def load_data(file_path: str):
     """Load the dataset from the specified path."""
     logger.info(f"Loading data from {file_path}.")
@@ -24,12 +25,14 @@ def load_data(file_path: str):
         logger.error(f"Failed to load data from {file_path}: {e}")
         raise
 
+
 def missing_values_analysis(df):
     """Analyze missing values in the dataset."""
     logger.info("Analyzing missing values.")
     missing_values = df.isnull().mean()
     logger.info(f"Missing values analysis completed:\n{missing_values}")
     return missing_values
+
 
 def variance_analysis(df, threshold=0.01):
     """Analyze variance of columns in the dataset."""
@@ -41,6 +44,7 @@ def variance_analysis(df, threshold=0.01):
     logger.info(f"Columns with variance below {threshold}:\n{low_variance_cols}")
     return low_variance_cols
 
+
 def correlation_analysis(df, target_col):
     """Analyze correlation of columns with the target variable."""
     logger.info(f"Analyzing correlation with target column '{target_col}'.")
@@ -50,6 +54,7 @@ def correlation_analysis(df, target_col):
     target_correlation = correlation_matrix[target_col].sort_values(ascending=False)
     logger.info(f"Correlation with target column '{target_col}':\n{target_correlation}")
     return target_correlation
+
 
 def plot_distributions(df, cols):
     """Plot distributions of the specified columns."""
@@ -62,6 +67,7 @@ def plot_distributions(df, cols):
             plt.title(f'Distribution of {col}')
             plt.show()
     logger.info("Distribution plots completed.")
+
 
 def eda_pipeline(file_path, target_col):
     """Complete pipeline for EDA."""

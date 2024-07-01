@@ -4,6 +4,8 @@ from pathlib import Path
 import pandas as pd
 import pmdarima as pm
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
 import joblib
 from statsmodels.tsa.stattools import adfuller
 from typing import Tuple
@@ -44,7 +46,8 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type: str = 'RobustScaler') -> Tuple[pd.DataFrame, object]:
+def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type: str = 'RobustScaler') -> Tuple[
+    pd.DataFrame, object]:
     """Normalize specified features in the DataFrame using the specified scaler."""
     logger.info("Normalizing features.")
     scaler = MinMaxScaler(feature_range=(0.1, 0.9)) if scaler_type == 'MinMaxScaler' else RobustScaler()
@@ -94,7 +97,18 @@ def optimize_arima(y: pd.Series, freq: str) -> dict:
     return best_params
 
 
-def process_and_save_features(df: pd.DataFrame, ticker: str, freq: str, scaler_type: str) -> None:
+def recursive_feature_elimination(X, y, num_features):
+    """Perform Recursive Feature Elimination to select the top features."""
+    logger.info("Starting Recursive Feature Elimination.")
+    model = LinearRegression()
+    rfe = RFE(estimator=model, n_features_to_select=num_features)
+    fit = rfe.fit(X, y)
+    selected_features = X.columns[fit.support_]
+    logger.info(f"Selected features: {selected_features}")
+    return selected_features
+
+
+def process_and_save_features(df: pd.DataFrame, ticker: str, freq: str, scaler_type: str, num_features: int) -> None:
     """Process features by normalizing and saving the data and scaler."""
     try:
         logger.info(f"Processing features for {ticker}.")
@@ -115,7 +129,18 @@ def process_and_save_features(df: pd.DataFrame, ticker: str, freq: str, scaler_t
         # Interpolation or handling missing data if necessary
         df.ffill(inplace=True)
 
-        feature_matrix, feature_scaler = normalize_features(df, COLUMN_SETS['to_scale'], scaler_type)
+        # Separate features and target
+        X = df.drop(columns=[CLOSE])
+        y = df[CLOSE]
+
+        # Perform RFE
+        selected_features = recursive_feature_elimination(X, y, num_features)
+
+        # Keep only selected features
+        X_selected = X[selected_features]
+        df_selected = pd.concat([X_selected, y], axis=1)
+
+        feature_matrix, feature_scaler = normalize_features(df_selected, selected_features.tolist(), scaler_type)
         save_scaler(feature_scaler, ticker)
 
         scaled_data_path = ROOT_DIR / f'data/scaled_data_{ticker}.csv'
@@ -152,7 +177,7 @@ def process_and_save_features(df: pd.DataFrame, ticker: str, freq: str, scaler_t
         raise
 
 
-def main(ticker: str, frequency: str,scaler_type: str, worker=None) -> None:
+def main(ticker: str, frequency: str, scaler_type: str, num_features: int, worker=None) -> None:
     """Main function to start feature engineering process for a given ticker."""
     logger.info(f"Starting feature engineering for {ticker}.")
     file_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
@@ -163,7 +188,7 @@ def main(ticker: str, frequency: str,scaler_type: str, worker=None) -> None:
         df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
         logger.info(f"Data loaded. Shape: {df.shape}")
         logger.info(f"Index: {df.index.name}")
-        process_and_save_features(df, ticker, frequency, scaler_type)
+        process_and_save_features(df, ticker, frequency, scaler_type, num_features)
         logger.info(f"Feature engineering completed for {ticker}.")
     except Exception as e:
         logger.error(f"Failed to complete feature engineering for {ticker}: {e}")
@@ -178,5 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--freq', type=str, required=True, help='Frequency: D or B')
     parser.add_argument('--scaler', type=str, default='RobustScaler', choices=['MinMaxScaler', 'RobustScaler'],
                         help='Scaler type')
+    parser.add_argument('--num_features', type=int, required=True, help='Number of features to select using RFE')
+
     args = parser.parse_args()
-    main(ticker=args.ticker, frequency=args.freq, scaler_type=args.scaler)
+    main(ticker=args.ticker, frequency=args.freq, scaler_type=args.scaler, num_features=args.num_features)
