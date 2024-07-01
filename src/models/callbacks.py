@@ -18,7 +18,6 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', f
     Prepare callbacks for training the model.
 
     Parameters:
-    - model_dir: Directory to save the model checkpoints.
     - ticker: Ticker symbol for logging and file naming.
     - monitor: Metric to monitor for early stopping and checkpoints.
     - fold_index: Index of the fold for cross-validation.
@@ -27,7 +26,6 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', f
     - List of configured callbacks.
     """
     logger.info(f"Preparing callbacks for {ticker}.")
-    logger.info(f"  - Model directory: {model_dir}")
     logger.info(f"  - Monitor metric: {monitor}")
     logger.info(f"  - Fold index: {fold_index}")
 
@@ -35,7 +33,7 @@ def prepare_callbacks(model_dir: Path, ticker: str, monitor: str = 'val_loss', f
     log_dir = ROOT_DIR / 'logs' / ticker / timestamp
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    filepath = model_dir / ticker / f"{ticker}_fold_{fold_index}_{monitor}.keras"
+    filepath = f"{ticker}/{ticker}_fold_{fold_index}_{monitor}.keras"
 
     callbacks = [
         EarlyStopping(monitor=monitor, patience=10, verbose=1, restore_best_weights=True),
