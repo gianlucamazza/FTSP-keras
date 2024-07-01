@@ -8,12 +8,12 @@ import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from typing import Dict
 
-from src.logging.logger import setup_logger
-from utils import save_to_json
-
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
+
+from src.logging.logger import setup_logger
+from src.utils import save_to_json
 
 # Setup logger
 ROOT_DIR = project_dir
