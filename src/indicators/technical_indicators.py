@@ -171,6 +171,11 @@ def calculate_technical_indicators(df):
     pd.DataFrame: DataFrame with technical indicators added.
     """
     required_columns = ['Close', 'High', 'Low', 'Volume']
+
+    # Print current columns and required columns
+    print(f"Current DataFrame columns: {df.columns.tolist()}")
+    print(f"Required columns: {required_columns}")
+
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
 

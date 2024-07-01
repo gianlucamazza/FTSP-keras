@@ -25,12 +25,12 @@ def load_data(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path, index_col='Date', parse_dates=True)
 
 
-def evaluate_model(X, y, num_features: int) -> float:
+def evaluate_model(x, y, num_features: int) -> float:
     """Evaluate the model using cross-validation and return the mean score."""
     model = LinearRegression()
     rfe = RFE(estimator=model, n_features_to_select=num_features)
-    X_selected = rfe.fit_transform(X, y)
-    scores = cross_val_score(model, X_selected, y, cv=5, scoring='neg_mean_squared_error')
+    x_selected = rfe.fit_transform(x, y)
+    scores = cross_val_score(model, x_selected, y, cv=5, scoring='neg_mean_squared_error')
     mean_score = -scores.mean()  # Convert to positive
     return mean_score
 
@@ -66,7 +66,7 @@ def main(ticker: str) -> None:
     logger.info(f"Optimal number of features for {ticker}: {optimal_num_features}")
 
     # Save the optimal number of features to a file
-    optimal_features_path = ROOT_DIR / f'{ticker}_optimal_features_.txt'
+    optimal_features_path = ROOT_DIR / f'{ticker}_optimal_features.txt'
     with open(optimal_features_path, 'w') as f:
         f.write(str(optimal_num_features))
     logger.info(f"Optimal number of features saved to {optimal_features_path}")
