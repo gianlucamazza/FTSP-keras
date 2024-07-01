@@ -1,7 +1,8 @@
+import sys
+import argparse
 from pathlib import Path
 import numpy as np
 import optuna
-import sys
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 import tensorflow as tf
@@ -140,7 +141,18 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    save_to_json(best_trial.params, best_params_path, ticker)
+    save_to_json(best_trial.params, best_params_path)
     logger.info(f"Best parameters saved at {best_params_path}")
 
     return best_trial.params
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Search hyperparams')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker')
+
+    args = parser.parse_args()
+    params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
+    best_params = optimize_hyperparameters(args.ticker, 50)
+
+    save_to_json(best_params, params_path)

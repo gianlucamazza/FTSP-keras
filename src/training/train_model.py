@@ -199,12 +199,5 @@ if __name__ == '__main__':
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
     params = load_from_json(params_path)
 
-    if not params:
-        logger.info(f"Parameters file not found: {params_path}")
-        logger.info('Starting hyperparameters optimization...')
-        params = optimize_hyperparameters(ticker=args.ticker)
-
-    logger.info('Found best params')
-    logger.info("Starting Training")
     logger.info(params)
     main(ticker=args.ticker, parameters=params)
