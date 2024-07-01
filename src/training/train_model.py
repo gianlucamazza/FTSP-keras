@@ -13,7 +13,7 @@ from typing import Tuple, Optional, Dict
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from training.objective import optimize_hyperparameters
+from src.training.objective import optimize_hyperparameters
 from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
