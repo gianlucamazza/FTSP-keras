@@ -35,8 +35,8 @@ for ENTRY in "${TICKER_DATES[@]}"; do
   # Setup feature engineering
   python src/data/feature_engineering.py --ticker="$NAME" --freq="$FREQ" --num_features="$OPTIMAL_FEATURES" || { echo "Feature engineering failed for $NAME"; exit 1; }
 
-  # Train the model
-  # python src/training/objective.py --ticker="$NAME" || { echo "Objective failed for $NAME"; exit 1; }
+  # Run hyperparameter optimization
+  python src/training/objective.py --ticker="$NAME" || { echo "Objective failed for $NAME"; exit 1; }
 
   # Train the model
   # python src/training/train_model.py --ticker="$NAME" || { echo "Model training failed for $NAME"; exit 1; }

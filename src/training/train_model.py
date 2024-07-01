@@ -14,7 +14,6 @@ sys.path.append(str(project_dir))
 
 from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
-from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.utils import load_from_json
@@ -25,13 +24,13 @@ logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
-                ticker: str, fold_index: int, params: Dict, trial_id: int) -> Tuple[Model, dict, float]:
+                ticker: str, fold_index: int, params: Dict, trial_id: int, input_shape: Tuple[int, int]) -> Tuple[Model, dict, float]:
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
 
     model = build_model(
-        input_shape=(params['train_steps'], len(COLUMN_SETS['to_scale'])),
+        input_shape=input_shape,
         neurons=params['neurons'],
         dropout=params['dropout'],
         additional_layers=params['additional_layers'],
@@ -97,7 +96,6 @@ class ModelTrainer:
 
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
-        self.df = prepare_data(self.df, self.feature_scaler)
         self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
         logger.info("ModelTrainer initialized successfully.")
 

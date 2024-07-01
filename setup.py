@@ -15,7 +15,6 @@ setup(
         'optuna',
         'optuna_integration',
         'pandas',
-        'PyQt5',
         'scikit-learn',
         'statsmodels',
         'tensorflow',

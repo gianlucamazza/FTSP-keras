@@ -2,12 +2,13 @@ import sys
 import argparse
 from pathlib import Path
 import numpy as np
+import pandas as pd
 import optuna
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
-from typing import Dict
+from typing import Tuple, Optional, Dict
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -39,7 +40,7 @@ METRIC_MSE = 'mse'
 from src.training.train_model import train_model, ModelTrainer
 
 
-def objective(trial: optuna.trial.Trial, ticker: str) -> float:
+def objective(trial: optuna.trial.Trial, ticker: str, input_shape: Tuple[int, int]) -> float:
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 300),
         'dropout': trial.suggest_float('dropout', 0.1, 0.5),
@@ -83,6 +84,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
                 ticker=trainer.ticker,
                 fold_index=i,
                 trial_id=trial_id,
+                input_shape=input_shape,
                 params=parameters
             )
         except Exception as e:
@@ -130,7 +132,14 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     study_name = f'{ticker}_study'
     study = optuna.create_study(direction='minimize', study_name=study_name)
-    study.optimize(lambda t: objective(t, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
+
+    data_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
+    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
+    train_steps = 30  # FIXME: replace with dynamic value (?)
+    x, _ = ModelTrainer.create_windowed_data(df, train_steps, 'Close')
+    input_shape = (x.shape[1], x.shape[2])
+
+    study.optimize(lambda t: objective(t, ticker, input_shape=input_shape), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
