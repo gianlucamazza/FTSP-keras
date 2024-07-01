@@ -17,7 +17,7 @@ from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
-from utils import load_from_json
+from src.utils import load_from_json
 from src.training.objective import optimize_hyperparameters
 
 # Setup logger
