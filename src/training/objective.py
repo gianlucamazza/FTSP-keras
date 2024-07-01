@@ -14,6 +14,7 @@ sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
 from src.utils import save_to_json
+from src.training.train_model import train_model, ModelTrainer
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -36,7 +37,6 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 METRIC_MSE = 'mse'
 
 # Import ModelTrainer and train_model at the module level to follow best practices
-from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
 
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
