@@ -133,13 +133,14 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
     study_name = f'{ticker}_study'
     study = optuna.create_study(direction='minimize', study_name=study_name)
 
-    data_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
+    data_path = ROOT_DIR / f'data/scaled_data_{ticker}.csv'
     df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
     train_steps = 30  # FIXME: replace with dynamic value (?)
     x, _ = ModelTrainer.create_windowed_data(df, train_steps, 'Close')
     input_shape = (x.shape[1], x.shape[2])
 
-    study.optimize(lambda t: objective(t, ticker, input_shape=input_shape), n_trials=n_trials, callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(t, ticker, input_shape), n_trials=n_trials,
+                   callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
