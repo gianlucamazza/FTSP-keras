@@ -1,11 +1,10 @@
+import sys
+import argparse
 from pathlib import Path
 import numpy as np
 import optuna
-import json
-import sys
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import mean_squared_error
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from typing import Dict
@@ -15,7 +14,7 @@ project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
-from src.training.train_utils import save_best_params
+from src.utils import save_to_json
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -37,14 +36,7 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 
 METRIC_MSE = 'mse'
 
-
-def load_best_params(ticker, path):
-    try:
-        with open(path, 'r') as file:
-            data = json.load(file)
-            return data.get(ticker)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
+from src.training.train_model import train_model, ModelTrainer
 
 
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
@@ -66,11 +58,10 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     try:
-        from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
-        trainer = ModelTrainer(ticker=ticker, p=parameters)
+        trainer = ModelTrainer(ticker=ticker, params=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
-        return float('inf')
+        raise
 
     x, y = trainer.x, trainer.y
     tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
@@ -86,9 +77,9 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
         y_train, y_val = y[train_index], y[val_index]
 
         try:
-            model, history = train_model(
+            model, history, val_loss = train_model(
                 x_train, y_train, x_val, y_val,
-                model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER),
+                model_dir=str(ROOT_DIR / trainer.MODELS_FOLDER / trainer.ticker),
                 ticker=trainer.ticker,
                 fold_index=i,
                 trial_id=trial_id,
@@ -96,14 +87,12 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
             )
         except Exception as e:
             logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)
-            return float('inf')
+            continue
 
-        y_pred = model.predict(x_val)
-        mse = mean_squared_error(y_val, y_pred)
-        scores.append(mse)
+        scores.append(val_loss)
         last_step = i
 
-        logger.info(f"Completed fold {i} for trial {trial_id} with MSE: {mse}")
+        logger.info(f"Completed fold {i} for trial {trial_id} with MSE: {val_loss}")
 
     if scores:
         average_score = np.mean(scores)
@@ -139,20 +128,31 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
-    study_name = f'{ticker}_study'  # Adding a study name
+    study_name = f'{ticker}_study'
     study = optuna.create_study(direction='minimize', study_name=study_name)
-    study.optimize(lambda t: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(t, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
-    trial = study.best_trial
-    logger.info(f"  Value: {trial.value:.4f}")
+    best_trial = study.best_trial
+    logger.info(f"  Value: {best_trial.value:.4f}")
     logger.info("  Params: ")
-    for key, value in trial.params.items():
+    for key, value in best_trial.params.items():
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    save_best_params(trial.params, best_params_path, ticker)
+    save_to_json(best_trial.params, best_params_path)
     logger.info(f"Best parameters saved at {best_params_path}")
 
-    return trial.params
+    return best_trial.params
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Search hyperparams')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker')
+
+    args = parser.parse_args()
+    params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
+    best_params = optimize_hyperparameters(args.ticker, 50)
+
+    save_to_json(best_params, params_path)

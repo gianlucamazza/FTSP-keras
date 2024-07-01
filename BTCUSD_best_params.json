@@ -1,0 +1,14 @@
+{
+    "neurons": 67,
+    "dropout": 0.3716811999571715,
+    "additional_layers": 0,
+    "bidirectional": false,
+    "l1_reg": 0.008130490921236697,
+    "l2_reg": 0.009374820320895658,
+    "learning_rate": 0.00012778798138713004,
+    "epochs": 132,
+    "batch_size": 17,
+    "train_steps": 84,
+    "early_stopping_patience": 11,
+    "n_folds": 10
+}

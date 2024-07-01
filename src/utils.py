@@ -8,19 +8,18 @@ from src.logging.logger import setup_logger
 logger = setup_logger('utils_logger', 'logs', 'utils.log')
 
 
-def save_best_params(params: dict, file_path: Path, ticker: str) -> None:
-    """Save the best model parameters to a JSON file."""
-    params['ticker'] = ticker
+def save_to_json(params: dict, file_path: Path) -> None:
+    """Save parameters to a JSON file."""
     try:
         with file_path.open('w') as f:
             json.dump(params, f, indent=4)
-        logger.info(f"Best parameters saved to {file_path}")
+        logger.info(f"Parameters saved to {file_path}")
     except IOError as e:
         logger.error(f"Failed to save parameters: {e}")
 
 
-def load_best_params(path: Path) -> dict:
-    """Load the best model parameters from a JSON file."""
+def load_from_json(path: Path) -> dict:
+    """Load parameters from a JSON file."""
     try:
         if path.exists():
             logger.info(f"Found parameters file at {path}")
@@ -32,6 +31,17 @@ def load_best_params(path: Path) -> dict:
     except IOError as e:
         logger.error(f"Failed to load parameters: {e}")
         return {}
+
+
+def update_json(file_path: Path, new_params: dict) -> None:
+    """Update existing JSON file with new parameters."""
+    try:
+        data = load_from_json(file_path)
+        data.update(new_params)
+        save_to_json(data, file_path)
+        logger.info(f"Parameters updated in {file_path}")
+    except Exception as e:
+        logger.error(f"Failed to update parameters: {e}")
 
 
 def calculate_metrics(model, x_test: np.ndarray, y_test: np.ndarray) -> tuple:
