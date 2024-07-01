@@ -18,7 +18,6 @@ from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.utils import load_from_json
-from src.training.objective import optimize_hyperparameters
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -192,19 +191,12 @@ def main(ticker: str, parameters: Dict) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train LSTM model for financial prediction')
+    parser = argparse.ArgumentParser(description='Train Model')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker')
 
     args = parser.parse_args()
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
     params = load_from_json(params_path)
 
-    if not params:
-        logger.info(f"Parameters file not found: {params_path}")
-        logger.info('Starting hyperparameters optimization...')
-        params = optimize_hyperparameters(ticker=args.ticker)
-
-    logger.info('Found best params')
-    logger.info("Starting Training")
     logger.info(params)
     main(ticker=args.ticker, parameters=params)
