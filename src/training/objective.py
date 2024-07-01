@@ -14,7 +14,6 @@ sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
 from src.utils import save_to_json
-from src.training.train_model import train_model, ModelTrainer
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -36,7 +35,8 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 
 METRIC_MSE = 'mse'
 
-# Import ModelTrainer and train_model at the module level to follow best practices
+from src.training.train_model import train_model, ModelTrainer
+
 
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
@@ -140,7 +140,7 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    save_to_json(best_trial.params, ROOT_DIR / f"{ticker}_best_params.json")
+    save_to_json(best_trial.params, best_params_path, ticker)
     logger.info(f"Best parameters saved at {best_params_path}")
 
     return best_trial.params

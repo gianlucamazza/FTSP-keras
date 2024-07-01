@@ -8,18 +8,17 @@ import pandas as pd
 from tensorflow.keras.models import Model
 from typing import Tuple, Optional, Dict
 
-
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.training.objective import optimize_hyperparameters
 from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
 from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.utils import load_from_json
+from src.training.objective import optimize_hyperparameters
 
 # Setup logger
 ROOT_DIR = project_dir
