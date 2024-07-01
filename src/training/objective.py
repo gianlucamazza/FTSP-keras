@@ -35,6 +35,8 @@ HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval
 
 METRIC_MSE = 'mse'
 
+# Import ModelTrainer and train_model at the module level to follow best practices
+from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
 
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
@@ -55,7 +57,6 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     try:
-        from src.training.train_model import train_model, ModelTrainer  # Ensure this import is correct
         trainer = ModelTrainer(ticker=ticker, params=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
@@ -126,20 +127,20 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
 
     tensorboard_callback = TensorBoardCallback(str(tensorboard_log_dir), metric_name='value')
 
-    study_name = f'{ticker}_study'  # Adding a study name
+    study_name = f'{ticker}_study'
     study = optuna.create_study(direction='minimize', study_name=study_name)
-    study.optimize(lambda trial: objective(trial, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(t, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")
-    trial = study.best_trial
-    logger.info(f"  Value: {trial.value:.4f}")
+    best_trial = study.best_trial
+    logger.info(f"  Value: {best_trial.value:.4f}")
     logger.info("  Params: ")
-    for key, value in trial.params.items():
+    for key, value in best_trial.params.items():
         logger.info(f"    {key}: {value}")
 
     # Save the best parameters
-    save_to_json(trial.params, best_params_path, ticker)
+    save_to_json(best_trial.params, ROOT_DIR / f"{ticker}_best_params.json")
     logger.info(f"Best parameters saved at {best_params_path}")
 
-    return trial.params
+    return best_trial.params
