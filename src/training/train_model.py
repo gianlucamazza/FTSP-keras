@@ -18,7 +18,6 @@ from src.data.data_utils import prepare_data
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
 from src.utils import load_from_json
-from src.training.objective import optimize_hyperparameters
 
 # Setup logger
 ROOT_DIR = project_dir
