@@ -21,5 +21,6 @@ setup(
         'tensorflow',
         'yfinance',
         'tensorflow-metadata',
+        'seaborn'
     ],
 )

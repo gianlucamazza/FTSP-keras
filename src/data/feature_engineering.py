@@ -6,6 +6,7 @@ import pmdarima as pm
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 import joblib
 from statsmodels.tsa.stattools import adfuller
+from typing import Tuple
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -43,11 +44,13 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type: str = 'RobustScaler') -> (pd.DataFrame, object):
+def normalize_features(df: pd.DataFrame, columns_to_normalize: list, scaler_type: str = 'RobustScaler') -> Tuple[pd.DataFrame, object]:
     """Normalize specified features in the DataFrame using the specified scaler."""
     logger.info("Normalizing features.")
     scaler = MinMaxScaler(feature_range=(0.1, 0.9)) if scaler_type == 'MinMaxScaler' else RobustScaler()
     df_reset = df.reset_index()
+    if 'Date' in columns_to_normalize:
+        columns_to_normalize.remove('Date')
     df_reset[columns_to_normalize] = scaler.fit_transform(df_reset[columns_to_normalize])
     df_normalized = df_reset.set_index('Date')
     check_data(df_normalized, "normalizing features")

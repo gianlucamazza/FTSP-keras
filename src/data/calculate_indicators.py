@@ -26,7 +26,7 @@ def process_indicators(df: pd.DataFrame) -> pd.DataFrame:
 def main(ticker: str) -> None:
     """Main function to calculate technical indicators for a given ticker."""
     logger.info(f"Starting calculation of technical indicators for {ticker}.")
-    file_path = ROOT_DIR / f'data/raw_data_{ticker}.csv'
+    file_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
     if not file_path.exists():
         logger.error(f"File not found: {file_path}")
         return

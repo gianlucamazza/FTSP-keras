@@ -11,6 +11,7 @@ project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
 from src.config import COLUMN_SETS
+from src.data.eda import eda_pipeline
 from src.logging.logger import setup_logger
 
 # Setup logger
@@ -88,11 +89,22 @@ def plot_price_history(dates, prices, ticker):
 def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
     """Main function to prepare data for a given ticker."""
     logger.info(f"Starting data preparation for {label}.")
-    raw_data_path = f'raw_data_{label}.csv'
+    raw_data_path = ROOT_DIR / f'raw_data_{label}.csv'
     processed_data_path = f'processed_data_{label}.csv'
     try:
         df = get_financial_data(ticker, label, file_path=raw_data_path, start_date=start_date, end_date=end_date)
         logger.info(f"Start date: {df.index[0]}, End date: {df.index[-1]}")
+
+        # Perform EDA
+        logger.info("Performing Exploratory Data Analysis (EDA).")
+        _, missing_values, low_variance_cols, target_correlation = eda_pipeline(raw_data_path, 'Close')
+
+        # Log the EDA results
+        logger.info(f"Percentage of missing values:\n{missing_values}")
+        logger.info(f"Columns with low variance:\n{low_variance_cols}")
+        logger.info(f"Correlation with target variable:\n{target_correlation}")
+
+        # Save the processed dataset
         save_df_to_csv(df, processed_data_path)
         logger.info(f'Finished data preparation for {label}.')
         if worker and not worker.is_running():
@@ -103,7 +115,7 @@ def main(ticker: str, label: str, start_date=None, end_date=None, worker=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Data Preparation')
-    parser.add_argument('--yfinance_ticker', type=str, required=True, help='Yearn Finance Symbol')
+    parser.add_argument('--yfinance_ticker', type=str, required=True, help='YFinance Symbol')
     parser.add_argument('--ticker', type=str, required=True, help='Ticker label')
     parser.add_argument('--start_date', type=str, required=True, help='Start date')
     parser.add_argument('--end_date', type=str, help='End date')
