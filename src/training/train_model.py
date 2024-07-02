@@ -206,5 +206,4 @@ if __name__ == '__main__':
     params_path = ROOT_DIR / f'{args.ticker}_best_params.json'
     params = load_from_json(params_path)
 
-    logger.info(params)
     main(ticker=args.ticker, parameters=params)

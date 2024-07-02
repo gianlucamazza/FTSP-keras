@@ -144,7 +144,7 @@ class ModelPredictor:
 
     def save_predictions(self, predictions, file_path):
         """Save the historical data and predictions to disk."""
-        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='D')[1:]
         predicted_data = pd.Series(predictions, index=future_dates)
 
         historical_data = self.inverse_transform_historical()
@@ -212,17 +212,6 @@ class ModelPredictor:
 
 def main(ticker: str):
     """Main function to run the prediction script."""
-    # Process and save features before running the prediction
-    processed_data_path = ROOT_DIR / f'data/processed_data_{ticker}.csv'
-    if not processed_data_path.exists():
-        raw_data_path = ROOT_DIR / f'data/raw_data_{ticker}.csv'
-        if raw_data_path.exists():
-            df_raw = pd.read_csv(raw_data_path, index_col='Date', parse_dates=True)
-            process_and_save_features(df_raw, ticker)
-        else:
-            logger.error(f"Raw data file not found: {raw_data_path}")
-            return
-
     predictor = ModelPredictor(ticker)
     predictor.run()
 
