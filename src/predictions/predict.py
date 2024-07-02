@@ -5,6 +5,7 @@ import numpy as np
 import joblib
 from pathlib import Path
 from keras.models import load_model
+from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -43,6 +44,7 @@ class ModelPredictor:
         self.ticker = ticker
         self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
         self.scaler_path = ROOT_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.arima_path = ROOT_DIR / f'{self.ticker}_arima_params.json'
         self.model_path = ROOT_DIR / f'{self.MODELS_FOLDER}/{self.ticker}_best_model.keras'
         self.params_path = ROOT_DIR / f'{self.ticker}_best_params.json'
 
@@ -58,6 +60,7 @@ class ModelPredictor:
 
         self.best_params = load_from_json(self.params_path)
         self.prediction_steps = self.best_params.get('train_steps', 30)
+        self.arima_params = load_from_json(self.arima_path)
         logger.info(f"Using train_steps: {self.prediction_steps}")
 
     def load_dataset(self):
@@ -124,6 +127,16 @@ class ModelPredictor:
 
         return np.array(predictions)
 
+    def predict_arima(self, num_predictions=10):
+        """Make predictions using the ARIMA model."""
+        arima_order = tuple(self.arima_params['arima_order'])
+        seasonal_order = tuple(self.arima_params['arima_seasonal_order'])
+        model = ARIMA(self.df[self.COLUMN_TO_PREDICT], order=arima_order, seasonal_order=seasonal_order,
+                      freq=self.arima_params['frequency'])
+        model_fit = model.fit()
+        predictions = model_fit.forecast(steps=num_predictions)
+        return predictions
+
     def inverse_transform_predictions(self, predictions):
         """Inverse transform the predictions."""
         predictions = np.array(predictions).reshape(-1, 1)
@@ -144,7 +157,14 @@ class ModelPredictor:
 
     def save_predictions(self, predictions, file_path):
         """Save the historical data and predictions to disk."""
-        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='D')[1:]
+        # Derive frequency from historical data
+        last_date = self.df.index[-1]
+        inferred_freq = pd.infer_freq(self.df.index)
+        if not inferred_freq:
+            logger.error("Unable to infer frequency from the historical data index.")
+            raise ValueError("Unable to infer frequency from the historical data index.")
+
+        future_dates = pd.date_range(start=last_date, periods=len(predictions) + 1, freq=inferred_freq)[1:]
         predicted_data = pd.Series(predictions, index=future_dates)
 
         historical_data = self.inverse_transform_historical()
