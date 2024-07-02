@@ -39,5 +39,5 @@ for ENTRY in "${TICKER_DATES[@]}"; do
   python src/training/objective.py --ticker="$NAME" || { echo "Objective failed for $NAME"; exit 1; }
 
   # Train the model
-  # python src/training/train_model.py --ticker="$NAME" || { echo "Model training failed for $NAME"; exit 1; }
+  python src/training/train_model.py --ticker="$NAME" || { echo "Model training failed for $NAME"; exit 1; }
 done

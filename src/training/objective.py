@@ -8,14 +8,14 @@ from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
-from typing import Tuple, Optional, Dict
+from typing import Dict
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
 from src.logging.logger import setup_logger
-from src.utils import save_to_json
+from src.utils import save_to_json, load_from_json
 
 # Setup logger
 ROOT_DIR = project_dir
@@ -40,7 +40,7 @@ METRIC_MSE = 'mse'
 from src.training.train_model import train_model, ModelTrainer
 
 
-def objective(trial: optuna.trial.Trial, ticker: str, input_shape: Tuple[int, int]) -> float:
+def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
         'neurons': trial.suggest_int('neurons', 50, 300),
         'dropout': trial.suggest_float('dropout', 0.1, 0.5),
@@ -58,13 +58,17 @@ def objective(trial: optuna.trial.Trial, ticker: str, input_shape: Tuple[int, in
 
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
+    data_path = ROOT_DIR / f'data/scaled_data_{ticker}.csv'
+    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
+    x, y = ModelTrainer.create_windowed_data(df, parameters['train_steps'], 'Close')
+    input_shape = (x.shape[1], x.shape[2])
+
     try:
         trainer = ModelTrainer(ticker=ticker, params=parameters)
     except Exception as e:
         logger.error(f"Failed to initialize ModelTrainer: {e}", exc_info=True)
         raise
 
-    x, y = trainer.x, trainer.y
     tscv = TimeSeriesSplit(n_splits=parameters['n_folds'])
     splits = list(tscv.split(x))
 
@@ -124,6 +128,14 @@ def objective(trial: optuna.trial.Trial, ticker: str, input_shape: Tuple[int, in
 
 def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
     best_params_path = ROOT_DIR / f'{ticker}_best_params.json'
+
+    # Check if best parameters already exist
+    if best_params_path.exists():
+        logger.info(f"Best parameters already found for {ticker}. Loading from file.")
+        found_params = load_from_json(best_params_path)
+        logger.info(f"Best parameters: {found_params}")
+        return found_params
+
     logger.info("Optimizing hyperparameters")
     tensorboard_log_dir = ROOT_DIR / 'logs' / 'optuna'
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
@@ -133,14 +145,7 @@ def optimize_hyperparameters(ticker: str, n_trials: int = 50) -> Dict:
     study_name = f'{ticker}_study'
     study = optuna.create_study(direction='minimize', study_name=study_name)
 
-    data_path = ROOT_DIR / f'data/scaled_data_{ticker}.csv'
-    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
-    train_steps = 30  # FIXME: replace with dynamic value (?)
-    x, _ = ModelTrainer.create_windowed_data(df, train_steps, 'Close')
-    input_shape = (x.shape[1], x.shape[2])
-
-    study.optimize(lambda t: objective(t, ticker, input_shape), n_trials=n_trials,
-                   callbacks=[tensorboard_callback])
+    study.optimize(lambda t: objective(t, ticker), n_trials=n_trials, callbacks=[tensorboard_callback])
 
     logger.info("Hyperparameter optimization completed")
     logger.info("Best trial:")

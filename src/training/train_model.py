@@ -24,7 +24,9 @@ logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
-                ticker: str, fold_index: int, params: Dict, trial_id: int, input_shape: Tuple[int, int]) -> Tuple[Model, dict, float]:
+                ticker: str, fold_index: int, params: Dict, trial_id: int,
+                input_shape: Tuple[int, int]) -> Tuple[Model, dict, float]:
+
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
     start_time = time.time()
@@ -47,7 +49,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         metrics=['mean_squared_error']
     )
 
-    model_dir_path = ROOT_DIR / model_dir
+    model_dir_path = Path(model_dir)
     model_dir_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Model directory: {model_dir_path}")
 
@@ -69,7 +71,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
     val_loss = min(history.history['val_loss'])
 
     logger.info(f"Training completed for fold {fold_index} in trial {trial_id}. Validation loss: {val_loss:.4f}")
-    model_path = ROOT_DIR / "models" / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
+    model_path = Path(model_dir) / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 
@@ -84,7 +86,8 @@ class ModelTrainer:
     SCALERS_FOLDER = 'scalers'
     MODELS_FOLDER = 'models'
 
-    def __init__(self, ticker: str, params: Optional[Dict] = None):
+    def __init__(self, ticker: str, params: Optional[Dict] = None, x: Optional[np.ndarray] = None,
+                 y: Optional[np.ndarray] = None):
         self.ticker = ticker
         self.parameters = params
         self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/scaled_data_{self.ticker}.csv'
@@ -96,7 +99,12 @@ class ModelTrainer:
 
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
-        self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
+
+        if x is None or y is None:
+            self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
+        else:
+            self.x, self.y = x, y
+
         logger.info("ModelTrainer initialized successfully.")
 
     def load_scaler(self) -> object:
@@ -167,8 +175,10 @@ def main(ticker: str, parameters: Dict) -> None:
     for fold_index in range(n_folds):
         trial_id = fold_index + 1
         logger.info(f"Preparing fold {fold_index + 1} of {n_folds}, trial {trial_id}")
+        input_shape = (trainer.x.shape[1], trainer.x.shape[2])
         model, history, val_loss = train_model(x_train, y_train, x_val, y_val, str(model_dir),
-                                               ticker, fold_index, parameters, trial_id)
+                                               ticker, fold_index, parameters, trial_id,
+                                               input_shape)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_model = model
