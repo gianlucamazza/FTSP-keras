@@ -1,10 +1,17 @@
-from config import COLUMN_SETS
-from technical_indicators import calculate_technical_indicators
-import logger as logger_module
+import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('data_utils_logger', BASE_DIR / 'logs', 'data_utils.log')
+from src.config import COLUMN_SETS
+from src.logging.logger import setup_logger
+
+# Ensure the project directory is in the sys.path
+project_dir = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(project_dir))
+
+from src.indicators.technical_indicators import calculate_technical_indicators
+
+ROOT_DIR = Path(__file__).parent.parent
+logger = setup_logger('data_utils_logger', 'logs', 'data_utils_logger.log')
 
 
 def prepare_data(df, feature_scaler):

@@ -1,13 +1,14 @@
 """
 config.py
 
-Configuration file containing constants and parameters for the LSTM model training and prediction.
+Configuration file containing constants and parameters for the LSTM and ARIMA model training and prediction.
 
 Sections:
 1. Column Definitions
 2. Column Sets
 3. Model Parameters
 4. Hyperparameters
+5. ARIMA Parameters
 """
 
 # Column Definitions
@@ -50,13 +51,14 @@ COLUMN_SETS = {
         UPPER, LOWER, RSI, MACD, RANGE,
         FIB_23_6, FIB_38_2, FIB_50, FIB_61_8, ATR, CCI, OBV, EMA, TREND
     ],
-
     'basic': [
         OPEN, HIGH, LOW, CLOSE, VOLUME
     ],
-
     'required': [
         CLOSE
     ]
 }
 
+# Model Parameters
+# ----------------
+TRAIN_VALIDATION_SPLIT = 0.8

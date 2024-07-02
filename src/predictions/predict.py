@@ -1,22 +1,24 @@
 import sys
+import argparse
 import pandas as pd
 import numpy as np
 import joblib
 from pathlib import Path
 from keras.models import load_model
+from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
-import logger as logger_module
-from config import COLUMN_SETS, CLOSE
-from technical_indicators import calculate_technical_indicators
-from feature_engineering import process_and_save_features
-from train_utils import load_best_params
 
-# Add the project directory to the sys.path
-project_dir = Path(__file__).resolve().parent
+project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-BASE_DIR = Path(__file__).parent.parent
-logger = logger_module.setup_logger('predict_logger', BASE_DIR / 'logs', 'predict.log')
+from src.logging.logger import setup_logger
+from src.config import COLUMN_SETS, CLOSE
+from src.indicators.technical_indicators import calculate_technical_indicators
+from src.data.feature_engineering import process_and_save_features
+from utils import load_from_json
+
+ROOT_DIR = project_dir
+logger = setup_logger('predict_logger', 'logs', 'predict.log')
 
 
 def load_scaler(path):
@@ -30,6 +32,7 @@ def load_scaler(path):
         logger.error(f"Error loading scaler from {path}: {e}")
         raise
 
+
 class ModelPredictor:
     COLUMN_TO_PREDICT = CLOSE
     DATA_FOLDER = 'data'
@@ -37,12 +40,13 @@ class ModelPredictor:
     MODELS_FOLDER = 'models'
     PREDICTIONS_FOLDER = 'predictions'
 
-    def __init__(self, ticker='BTC-USD'):
+    def __init__(self, ticker='BTC'):
         self.ticker = ticker
-        self.data_path = BASE_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
-        self.scaler_path = BASE_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
-        self.model_path = BASE_DIR / f'{self.MODELS_FOLDER}/model_{self.ticker}_best.keras'
-        self.params_path = BASE_DIR / 'best_params.json'
+        self.data_path = ROOT_DIR / f'{self.DATA_FOLDER}/processed_data_{self.ticker}.csv'
+        self.scaler_path = ROOT_DIR / f'{self.SCALERS_FOLDER}/feature_scaler_{self.ticker}.pkl'
+        self.arima_path = ROOT_DIR / f'{self.ticker}_arima_params.json'
+        self.model_path = ROOT_DIR / f'{self.MODELS_FOLDER}/{self.ticker}_best_model.keras'
+        self.params_path = ROOT_DIR / f'{self.ticker}_best_params.json'
 
         logger.info(f"Initializing ModelPredictor for ticker {ticker}")
         logger.info(f"Data path: {self.data_path}")
@@ -54,8 +58,9 @@ class ModelPredictor:
         self.model = load_model(self.model_path)
         self.df = self.load_dataset()
 
-        self.best_params = load_best_params(self.params_path)
+        self.best_params = load_from_json(self.params_path)
         self.prediction_steps = self.best_params.get('train_steps', 30)
+        self.arima_params = load_from_json(self.arima_path)
         logger.info(f"Using train_steps: {self.prediction_steps}")
 
     def load_dataset(self):
@@ -93,8 +98,10 @@ class ModelPredictor:
         # Use only the last 'prediction_steps' days
         df_last_30 = self.df.tail(self.prediction_steps)
         if len(df_last_30) < self.prediction_steps:
-            logger.error(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
-            raise ValueError(f"Not enough data to create input sequences. Required: {self.prediction_steps}, available: {len(df_last_30)}")
+            logger.error(f"Not enough data to create input sequences. "
+                         f"Required: {self.prediction_steps}, available: {len(df_last_30)}")
+            raise ValueError(f"Not enough data to create input sequences. "
+                             f"Required: {self.prediction_steps}, available: {len(df_last_30)}")
         x = []
         data = df_last_30.values
         x.append(data[:self.prediction_steps])
@@ -120,6 +127,16 @@ class ModelPredictor:
 
         return np.array(predictions)
 
+    def predict_arima(self, num_predictions=10):
+        """Make predictions using the ARIMA model."""
+        arima_order = tuple(self.arima_params['arima_order'])
+        seasonal_order = tuple(self.arima_params['arima_seasonal_order'])
+        model = ARIMA(self.df[self.COLUMN_TO_PREDICT], order=arima_order, seasonal_order=seasonal_order,
+                      freq=self.arima_params['frequency'])
+        model_fit = model.fit()
+        predictions = model_fit.forecast(steps=num_predictions)
+        return predictions
+
     def inverse_transform_predictions(self, predictions):
         """Inverse transform the predictions."""
         predictions = np.array(predictions).reshape(-1, 1)
@@ -140,7 +157,14 @@ class ModelPredictor:
 
     def save_predictions(self, predictions, file_path):
         """Save the historical data and predictions to disk."""
-        future_dates = pd.date_range(start=self.df.index[-1], periods=len(predictions) + 1, freq='B')[1:]
+        # Derive frequency from historical data
+        last_date = self.df.index[-1]
+        inferred_freq = pd.infer_freq(self.df.index)
+        if not inferred_freq:
+            logger.error("Unable to infer frequency from the historical data index.")
+            raise ValueError("Unable to infer frequency from the historical data index.")
+
+        future_dates = pd.date_range(start=last_date, periods=len(predictions) + 1, freq=inferred_freq)[1:]
         predicted_data = pd.Series(predictions, index=future_dates)
 
         historical_data = self.inverse_transform_historical()
@@ -169,8 +193,10 @@ class ModelPredictor:
         plt.scatter(actual_data.idxmax(), actual_data.max(), color='red', marker='o', label='Max Actual')
         plt.scatter(actual_data.idxmin(), actual_data.min(), color='green', marker='o', label='Min Actual')
         plt.scatter(actual_data.index[-1], actual_data.iloc[-1], color='purple', marker='o', label='Last Actual')
-        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o', label='First Predicted')
-        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o', label='Last Predicted')
+        plt.scatter(predicted_data.index[0], predicted_data.iloc[0], color='yellow', marker='o',
+                    label='First Predicted')
+        plt.scatter(predicted_data.index[-1], predicted_data.iloc[-1], color='yellow', marker='o',
+                    label='Last Predicted')
 
         plt.legend()
         plt.title(f'{self.ticker} Close Price Prediction')
@@ -180,12 +206,13 @@ class ModelPredictor:
         plt.xticks(rotation=45)
 
         # Add a shaded area for prediction period
-        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3, label='Prediction Period')
+        plt.axvspan(actual_data.index[-1], predicted_data.index[-1], color='lightblue', alpha=0.3,
+                    label='Prediction Period')
 
         plt.tight_layout()
 
         # Save plot
-        plot_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_prediction_plot.png'
+        plot_path = ROOT_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_prediction_plot.png'
         plt.savefig(plot_path, dpi=300)
         logger.info(f"Prediction plot saved at {plot_path}")
 
@@ -197,28 +224,20 @@ class ModelPredictor:
             predictions_scaled = self.predict()
             predictions = self.inverse_transform_predictions(predictions_scaled)
             self.plot_predictions(predictions)
-            predictions_path = BASE_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
+            predictions_path = ROOT_DIR / f'{self.PREDICTIONS_FOLDER}/{self.ticker}_predictions.csv'
             self.save_predictions(predictions, predictions_path)
         except Exception as e:
             logger.error(f"Error in prediction process: {e}", exc_info=True)
 
 
-def main(ticker='BTC-USD'):
+def main(ticker: str):
     """Main function to run the prediction script."""
-    # Process and save features before running the prediction
-    processed_data_path = BASE_DIR / f'data/processed_data_{ticker}.csv'
-    if not processed_data_path.exists():
-        raw_data_path = BASE_DIR / f'data/raw_data_{ticker}.csv'
-        if raw_data_path.exists():
-            df_raw = pd.read_csv(raw_data_path, index_col='Date', parse_dates=True)
-            process_and_save_features(df_raw, ticker)
-        else:
-            logger.error(f"Raw data file not found: {raw_data_path}")
-            return
-
     predictor = ModelPredictor(ticker)
     predictor.run()
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Data Prediction')
+    parser.add_argument('--ticker', type=str, required=True, help='Ticker label')
+
+    main(ticker=parser.parse_args().ticker)
