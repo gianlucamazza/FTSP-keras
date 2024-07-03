@@ -12,7 +12,7 @@ sys.path.append(str(project_dir))
 
 # Setup logger
 ROOT_DIR = project_dir
-logger = setup_logger('data_preparation_logger', 'logs', 'data_preparation.log')
+logger = setup_logger('model_builder_logger', 'logs', 'model_builder.log')
 
 
 def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
@@ -64,8 +64,11 @@ def build_model(input_shape, neurons=50, dropout=0.2, optimizer='adam',
     # Output layer
     model.add(Dense(1))
 
-    # Compile model
-    opt = Adam(learning_rate=learning_rate) if optimizer == 'adam' else optimizer
+   # Compile model
+    if optimizer == 'adam':
+        opt = Adam(learning_rate=learning_rate)
+    else:
+        opt = optimizer
     model.compile(optimizer=opt, loss=loss, metrics=metrics)
 
     return model
