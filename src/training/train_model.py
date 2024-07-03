@@ -49,7 +49,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
         metrics=['mean_squared_error']
     )
 
-    model_dir_path = Path(model_dir)
+    model_dir_path = Path(model_dir) / f"trial_{trial_id}" / f"fold_{fold_index}"
     model_dir_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Model directory: {model_dir_path}")
 
@@ -71,7 +71,7 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
     val_loss = min(history.history['val_loss'])
 
     logger.info(f"Training completed for fold {fold_index} in trial {trial_id}. Validation loss: {val_loss:.4f}")
-    model_path = Path(model_dir) / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
+    model_path = model_dir_path / f"model_{ticker}_trial_{trial_id}_fold_{fold_index}.keras"
     model.save(model_path)
     logger.info(f"Model saved at {model_path}")
 

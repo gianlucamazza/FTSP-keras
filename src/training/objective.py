@@ -95,6 +95,8 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
             logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)
             continue
 
+        logger.info(f"Training history for fold {i}, trial {trial_id}: {history.history}")
+
         scores.append(val_loss)
         last_step = i
 
