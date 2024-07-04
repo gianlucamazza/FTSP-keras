@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import joblib
 from pathlib import Path
-from keras.models import load_model
+from keras._tf_keras.keras.models import load_model
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 

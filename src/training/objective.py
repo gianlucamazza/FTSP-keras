@@ -6,6 +6,7 @@ import pandas as pd
 import optuna
 from optuna.integration.tensorboard import TensorBoardCallback
 from sklearn.model_selection import TimeSeriesSplit
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from typing import Dict
@@ -22,8 +23,8 @@ ROOT_DIR = project_dir
 logger = setup_logger('objective_logger', 'logs', 'objective_logger.log')
 
 # Define hyperparameters
-HP_NEURONS = hp.HParam('neurons', hp.Discrete([50, 100, 150, 200, 250, 300]))
-HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.5))
+HP_NEURONS = hp.HParam('neurons', hp.Discrete([50, 100, 150, 200, 250, 300, 350, 400]))
+HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.6))
 HP_LAYERS = hp.HParam('additional_layers', hp.IntInterval(0, 3))
 HP_BIDIRECTIONAL = hp.HParam('bidirectional', hp.Discrete([True, False]))
 HP_L1_REG = hp.HParam('l1_reg', hp.RealInterval(1e-6, 1e-2))
@@ -31,7 +32,7 @@ HP_L2_REG = hp.HParam('l2_reg', hp.RealInterval(1e-6, 1e-2))
 HP_LEARNING_RATE = hp.HParam('learning_rate', hp.RealInterval(1e-5, 1e-2))
 HP_N_FOLDS = hp.HParam('n_folds', hp.IntInterval(3, 10))
 HP_EPOCHS = hp.HParam('epochs', hp.IntInterval(50, 200))
-HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32, 64, 128]))
+HP_BATCH_SIZE = hp.HParam('batch_size', hp.IntInterval(16, 512))
 HP_TRAIN_STEPS = hp.HParam('train_steps', hp.IntInterval(30, 180))
 HP_EARLY_STOPPING_PATIENCE = hp.HParam('early_stopping_patience', hp.IntInterval(5, 20))
 
@@ -39,18 +40,32 @@ METRIC_MSE = 'mse'
 
 from src.training.train_model import train_model, ModelTrainer
 
+def preprocess_data(data_path, train_steps):
+    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
+    if df.isnull().values.any():
+        raise ValueError("Missing values in Dataset")
+    x, y = ModelTrainer.create_windowed_data(df, train_steps, 'Close')
+
+    num_samples, num_timesteps, num_features = x.shape
+    x = x.reshape(-1, num_features)
+    scaler = StandardScaler()
+    x = scaler.fit_transform(x)
+    x = x.reshape(num_samples, num_timesteps, num_features)
+
+    return x, y
+
 
 def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     parameters = {
-        'neurons': trial.suggest_int('neurons', 50, 300),
-        'dropout': trial.suggest_float('dropout', 0.1, 0.5),
+        'neurons': trial.suggest_int('neurons', 50, 400),
+        'dropout': trial.suggest_float('dropout', 0.1, 0.6),
         'additional_layers': trial.suggest_int('additional_layers', 0, 3),
         'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
         'l1_reg': trial.suggest_float('l1_reg', 1e-6, 1e-2),
         'l2_reg': trial.suggest_float('l2_reg', 1e-6, 1e-2),
         'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-2, log=True),
         'epochs': trial.suggest_int('epochs', 50, 200),
-        'batch_size': trial.suggest_int('batch_size', 16, 128),
+        'batch_size': trial.suggest_int('batch_size', 16, 512),
         'train_steps': trial.suggest_int('train_steps', 30, 180),
         'early_stopping_patience': trial.suggest_int('early_stopping_patience', 5, 20),
         'n_folds': trial.suggest_int('n_folds', 3, 10)
@@ -59,8 +74,7 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     logger.info(f"Starting trial {trial.number} with parameters: {parameters}")
 
     data_path = ROOT_DIR / f'data/scaled_data_{ticker}.csv'
-    df = pd.read_csv(data_path, index_col='Date', parse_dates=True)
-    x, y = ModelTrainer.create_windowed_data(df, parameters['train_steps'], 'Close')
+    x, y = preprocess_data(data_path, parameters['train_steps'])
     input_shape = (x.shape[1], x.shape[2])
 
     try:
@@ -76,6 +90,12 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
     trial_id = trial.number
     last_step = 0
 
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=parameters['early_stopping_patience'],
+        restore_best_weights=True
+    )
+
     for i, (train_index, val_index) in enumerate(splits):
         logger.info(f"Starting fold {i} for trial {trial_id}")
         x_train, x_val = x[train_index], x[val_index]
@@ -89,7 +109,8 @@ def objective(trial: optuna.trial.Trial, ticker: str) -> float:
                 fold_index=i,
                 trial_id=trial_id,
                 input_shape=input_shape,
-                params=parameters
+                params=parameters,
+                callbacks=[early_stopping]
             )
         except Exception as e:
             logger.error(f"Failed to train model for fold {i} in trial {trial_id}: {e}", exc_info=True)

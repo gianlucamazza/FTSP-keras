@@ -1,14 +1,16 @@
 import sys
 from pathlib import Path
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional, Input
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l1_l2
-from src.logging.logger import setup_logger
+from keras._tf_keras.keras.models import Sequential
+from keras._tf_keras.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional, Input
+from keras._tf_keras.keras.optimizers import Adam
+from keras._tf_keras.keras.regularizers import l1_l2
+from typing import Optional
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
+
+from src.logging.logger import setup_logger
 
 # Setup logger
 ROOT_DIR = project_dir

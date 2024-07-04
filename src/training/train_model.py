@@ -5,14 +5,14 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import Model
-from typing import Tuple, Optional, Dict
+from keras._tf_keras.keras.models import Model
+from typing import Tuple, Optional, Dict, List
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_dir))
 
-from src.config import COLUMN_SETS, TRAIN_VALIDATION_SPLIT
+from src.config import TRAIN_VALIDATION_SPLIT
 from src.logging.logger import setup_logger
 from src.models.model_builder import build_model
 from src.models.callbacks import prepare_callbacks
@@ -25,7 +25,7 @@ logger = setup_logger('train_model', 'logs', 'train_model.log')
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray, model_dir: str,
                 ticker: str, fold_index: int, params: Dict, trial_id: int,
-                input_shape: Tuple[int, int]) -> Tuple[Model, dict, float]:
+                input_shape: Tuple[int, int], callbacks: List) -> Tuple[Model, dict, float]:
 
     """Train the LSTM model."""
     logger.info(f"Starting training for fold {fold_index} in trial {trial_id}...")
@@ -52,8 +52,6 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
     model_dir_path = Path(model_dir) / f"trial_{trial_id}" / f"fold_{fold_index}"
     model_dir_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Model directory: {model_dir_path}")
-
-    callbacks = prepare_callbacks(model_dir=model_dir_path, ticker=ticker, monitor='val_loss', fold_index=fold_index)
 
     try:
         history = model.fit(

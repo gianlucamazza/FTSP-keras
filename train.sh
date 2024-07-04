@@ -8,7 +8,7 @@ fi
 
 # Set ticker, date range, and names
 TICKER_DATES=(
-  "BTC-USD,2020-01-01,BTCUSD,D"
+  "BTC-USD,2010-01-01,BTCUSD,D"
 #  "GC=F,2000-01-01,GOLDUSD,B"
 )
 
