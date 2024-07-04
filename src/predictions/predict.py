@@ -5,6 +5,7 @@ import numpy as np
 import joblib
 from pathlib import Path
 from keras.models import load_model
+from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 
 project_dir = Path(__file__).resolve().parent.parent.parent

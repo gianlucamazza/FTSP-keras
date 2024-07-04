@@ -5,8 +5,8 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import Model
-from typing import Tuple, Optional, Dict
+from keras.models import Model
+from typing import Tuple, Optional, Dict, List
 
 # Ensure the project directory is in the sys.path
 project_dir = Path(__file__).resolve().parent.parent.parent
@@ -96,7 +96,14 @@ class ModelTrainer:
 
         self.feature_scaler = self.load_scaler()
         self.df = self.load_dataset()
-        self.x, self.y = self.create_windowed_data(self.df, self.parameters['train_steps'], self.COLUMN_TO_PREDICT)
+
+        if x is None or y is None:
+            self.x, self.y = self.create_windowed_data(self.df, self.parameters['lag_parameter'], self.COLUMN_TO_PREDICT)
+        else:
+            self.x, self.y = x, y
+
+        
+        
         logger.info("ModelTrainer initialized successfully.")
 
     def load_scaler(self) -> object:
@@ -131,17 +138,43 @@ class ModelTrainer:
             raise
 
     @staticmethod
-    def create_windowed_data(df: pd.DataFrame, steps: int, target_column: str) -> Tuple[np.ndarray, np.ndarray]:
+    def create_windowed_data(df: pd.DataFrame, lag_parameter: int, target_column: str) -> Tuple[np.ndarray, np.ndarray]:
         """Create windowed data for LSTM."""
         logger.info("Creating windowed data for LSTM.")
-        x, y = [], []
+        time_steps = 30
+
         target_index = df.columns.get_loc(target_column)
-        data = df.values
-        for i in range(steps, len(data)):
-            x.append(data[i - steps:i])
-            y.append(data[i, target_index])
+
+
+        x_training_set = df.iloc[:, 0:12].values
+        y_training_set = df.iloc[:, target_index].values
+
+
+        # rolling window with 100 data
+        X = []
+        y = []
+        
+        
+        for i in range(time_steps, df.shape[0] - lag_parameter, lag_parameter):
+                X.append(x_training_set[i-time_steps:i,:])
+                y.append(y_training_set[i:i+lag_parameter])
         logger.info("Windowed data creation complete.")
-        return np.array(x), np.array(y)
+        return np.array(X), np.array(y)
+    
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def main(ticker: str, parameters: Dict) -> None:
